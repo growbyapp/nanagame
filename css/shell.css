@@ -304,3 +304,20 @@ body { position: fixed; inset: 0; overflow: hidden; -webkit-touch-callout: none;
 .install-card h3 { margin: 0; font-family: var(--font-punk, Impact, sans-serif); font-weight: 400; font-size: 26px; }
 .install-card ol { margin: 0; padding-left: 20px; }
 .install-card .note { font-size: 13px; opacity: .8; }
+
+/* End screens: the buttons stay pinned in reach so nobody has to scroll to continue. */
+.results .results-actions, .end-card .results-actions, .quiz-result .results-actions, .prep .results-actions, .deal .deal-actions {
+  position: sticky; bottom: 0; z-index: 6; width: 100%; box-sizing: border-box; justify-content: center;
+  padding: 12px 10px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  background: linear-gradient(to bottom, rgba(13,11,12,0), rgba(13,11,12,.92) 32%);
+}
+.mg-results > .mg-btn { position: sticky; bottom: 0; z-index: 2; box-shadow: 0 -10px 16px var(--paper, #f3ece0), 4px 4px 0 var(--ink, #0d0b0c); }
+.pn-card .pn-btn { position: sticky; bottom: 6px; }
+.letter .btn, .polaroid-pop .btn, .keepsake-card .btn { position: sticky; bottom: 8px; z-index: 3; }
+.polaroid-pop { overflow-y: auto; }
+/* Short phones: smaller faces on results so the whole card fits. */
+@media (max-height: 760px) {
+  .results .duo-char svg, .end-card .duo-char svg { max-height: 19dvh; }
+  .results { gap: 8px; padding-top: 14px; }
+  .results-rank { transform: scale(.8); margin: -6px 0; }
+}

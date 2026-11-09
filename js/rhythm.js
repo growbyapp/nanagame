@@ -23,13 +23,13 @@ window.NG = window.NG || {};
   var HINT_KEY = 'ng_rhythm_hint_seen_v1';
 
   var WINDOWS = {
-    hachi: { perfect: 0.07, good: 0.15, miss: 0.19 },
-    nana: { perfect: 0.055, good: 0.12, miss: 0.155 },
-    demon: { perfect: 0.045, good: 0.095, miss: 0.13 }
+    hachi: { perfect: 0.09, good: 0.2, miss: 0.25 },
+    nana: { perfect: 0.07, good: 0.16, miss: 0.2 },
+    demon: { perfect: 0.05, good: 0.11, miss: 0.15 }
   };
   var CROWD = {
-    hachi: { perfect: 1.4, good: 0.8, miss: 4 },
-    nana: { perfect: 1.4, good: 0.7, miss: 4.5 },
+    hachi: { perfect: 1.6, good: 1, miss: 3 },
+    nana: { perfect: 1.5, good: 0.9, miss: 3.5 },
     demon: { perfect: 1.2, good: 0.5, miss: 6 }
   };
   var RIVAL_SKILL = { hachi: 0.6, nana: 0.7, demon: 0.8 };
@@ -88,10 +88,13 @@ window.NG = window.NG || {};
     var curseMult = NG.Curses.reduce(function (m, c) { return cursed[c.id] ? m * c.mult : m; }, 1);
     var reduce = !!settings.reduceFlash;
     var tighten = cursed.tight ? 0.7 : 1;
-    var WIN = { perfect: WINDOWS[diff].perfect * tighten, good: WINDOWS[diff].good * tighten, miss: WINDOWS[diff].miss * tighten };
+    // Touch screens add latency and fingers cover the notes, so phones get roomier windows.
+    var touchEase = IS_TOUCH ? 1.2 : 1;
+    var WIN = { perfect: WINDOWS[diff].perfect * tighten * touchEase, good: WINDOWS[diff].good * tighten * touchEase, miss: WINDOWS[diff].miss * tighten * touchEase };
     var CROWDC = CROWD[diff];
     var canFail = diff !== 'hachi';
-    var baseApproach = 1.55 / (settings.speed || 1) / (cursed['speed-up'] ? 1.35 : 1);
+    // Notes take longer to fall on phones and on the easiest difficulty, giving more time to read them.
+    var baseApproach = 1.55 * (IS_TOUCH ? 1.2 : 1) * (diff === 'hachi' ? 1.15 : 1) / (settings.speed || 1) / (cursed['speed-up'] ? 1.35 : 1);
 
     /* ---------- DOM ---------- */
     var prevPosition = null;

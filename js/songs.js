@@ -324,9 +324,9 @@ window.NG = window.NG || {};
 
   /* ---------- deterministic thinning ---------- */
   var DIFFS = {
-    hachi: { nps: 1.15, minGap: 0.38, laneGap: 0.4, grid: 4, maxChord: 1, maxChordsPerBar: 0, chordGrid: 16, chordBars: 1, holdBlocks: true, hats: false, holdMin: 0.75, holdCap: 2.2 },
-    nana: { nps: 2.6, minGap: 0.18, laneGap: 0.2, grid: 2, maxChord: 2, maxChordsPerBar: 1, chordGrid: 8, chordBars: 2, holdBlocks: false, hats: false, holdMin: 0.4, holdCap: 4 },
-    demon: { nps: 5.6, minGap: 0.07, laneGap: 0.118, grid: 1, maxChord: 2, maxChordsPerBar: 2, chordGrid: 8, chordBars: 1, holdBlocks: false, hats: true, holdMin: 0.32, holdCap: 6 }
+    hachi: { nps: 0.85, minGap: 0.5, laneGap: 0.55, grid: 4, maxChord: 1, maxChordsPerBar: 0, chordGrid: 16, chordBars: 1, holdBlocks: true, hats: false, holdMin: 0.75, holdCap: 2.2 },
+    nana: { nps: 1.9, minGap: 0.26, laneGap: 0.3, grid: 2, maxChord: 2, maxChordsPerBar: 1, chordGrid: 8, chordBars: 2, holdBlocks: false, hats: false, holdMin: 0.4, holdCap: 4 },
+    demon: { nps: 4.6, minGap: 0.09, laneGap: 0.14, grid: 1, maxChord: 2, maxChordsPerBar: 2, chordGrid: 8, chordBars: 1, holdBlocks: false, hats: true, holdMin: 0.32, holdCap: 6 }
   };
 
   function metric(bp) {
