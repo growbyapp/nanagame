@@ -1295,6 +1295,8 @@ window.NG = window.NG || {};
     flash.appendChild(box);
     form.appendChild(flash);
 
+    form.appendChild(saveCodePanel());
+
     var acts = el('div', 'results-actions');
     acts.appendChild(btn('Erase all progress', 'ghost', function () {
       if (!window.confirm('Erase your story, scores and polaroids? This cannot be undone.')) return;
@@ -1308,6 +1310,124 @@ window.NG = window.NG || {};
     form.appendChild(el('p', 'disclaimer', 'Fan-made and non-commercial. NANA belongs to Ai Yazawa and their rights holders. Art, music and text in this game are original tributes.'));
     n.appendChild(form);
     mount(n);
+  }
+
+  /* ---------- Save codes: move progress between devices with no server ---------- */
+
+  var CODE_PREFIX = 'NANA707.';
+
+  function toB64(bytes) {
+    var bin = '';
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function fromB64(text) {
+    var t = text.replace(/-/g, '+').replace(/_/g, '/');
+    while (t.length % 4) t += '=';
+    var bin = atob(t);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+  function pipe(bytes, stream) {
+    return new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer().then(function (b) { return new Uint8Array(b); });
+  }
+
+  function makeSaveCode() {
+    var data = {};
+    ['run', 'unlocked', 'best', 'games', 'polaroids', 'keepsakes', 'endings', 'whatif', 'wfRun', 'wfSeen', 'diff', 'persona'].forEach(function (k) { data[k] = meta[k]; });
+    var bytes = new TextEncoder().encode(JSON.stringify(data));
+    if (!window.CompressionStream) return Promise.resolve(CODE_PREFIX + 'p' + toB64(bytes));
+    return pipe(bytes, new CompressionStream('deflate-raw')).then(function (z) { return CODE_PREFIX + 'z' + toB64(z); });
+  }
+
+  function isObj(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
+  function isStep(v, max) { return Number.isInteger(v) && v >= 0 && v <= max; }
+
+  function validRun(r) {
+    if (!isObj(r) || !isObj(r.flags) || !NG.Story) return false;
+    if (!Number.isInteger(r.chapter) || r.chapter < 0 || r.chapter >= NG.Story.chapters.length) return false;
+    if (!isStep(r.step, NG.Story.chapters[r.chapter].steps.length)) return false;
+    return ['bond', 'fame', 'scandal', 'harmony'].every(function (k) { return typeof r[k] === 'number'; });
+  }
+  function validEpisodeRun(r) {
+    if (!isObj(r) || !isObj(r.flags) || !NG.WhatIf) return false;
+    var ep = episode(r.ep);
+    return !!ep && isStep(r.step, ep.steps.length);
+  }
+
+  // Codes are pasted text from anywhere, so only known fields of the right shape are accepted.
+  function cleanSave(d) {
+    if (!isObj(d)) return null;
+    var keys = ['unlocked', 'best', 'games', 'polaroids', 'keepsakes', 'endings', 'whatif'];
+    if (!keys.every(function (k) { return isObj(d[k]); })) return null;
+    var out = {};
+    keys.forEach(function (k) { out[k] = d[k]; });
+    out.unlocked['last-train'] = true;
+    out.wfSeen = !!d.wfSeen;
+    out.diff = DIFFS.some(function (x) { return x.id === d.diff; }) ? d.diff : 'hachi';
+    out.persona = d.persona === 'black' ? 'black' : 'pink';
+    out.run = validRun(d.run) ? d.run : null;
+    out.wfRun = validEpisodeRun(d.wfRun) ? d.wfRun : null;
+    return out;
+  }
+
+  function readSaveCode(text) {
+    var code = String(text || '').replace(/\s+/g, '');
+    if (code.indexOf(CODE_PREFIX) !== 0) return Promise.reject(new Error('prefix'));
+    var mode = code.charAt(CODE_PREFIX.length);
+    var bytes = fromB64(code.slice(CODE_PREFIX.length + 1));
+    var raw;
+    if (mode === 'p') raw = Promise.resolve(bytes);
+    else if (mode === 'z' && window.DecompressionStream) raw = pipe(bytes, new DecompressionStream('deflate-raw'));
+    else return Promise.reject(new Error('format'));
+    return raw.then(function (b) {
+      var clean = cleanSave(JSON.parse(new TextDecoder().decode(b)));
+      if (!clean) throw new Error('shape');
+      return clean;
+    });
+  }
+
+  function copyText(box) {
+    box.focus();
+    box.select();
+    box.setSelectionRange(0, box.value.length);
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(box.value).then(function () { return true; }, function () { return document.execCommand('copy'); });
+    }
+    return Promise.resolve(document.execCommand('copy'));
+  }
+
+  function saveCodePanel() {
+    var wrap = el('div', 'save-code');
+    wrap.innerHTML = '<h3 class="prep-sub">Move your save</h3><p class="disclaimer">Saves live in this browser. Copy this code to back up your progress or continue on another device.</p>';
+    var out = el('textarea');
+    out.readOnly = true;
+    out.rows = 3;
+    out.setAttribute('aria-label', 'Your save code');
+    out.value = 'Making your code...';
+    wrap.appendChild(out);
+    var copy = btn('Copy my code', 'primary', function () {
+      copyText(out).then(function (ok) { toast(ok ? 'Code copied. Keep it somewhere safe.' : 'Select the code and copy it by hand.', ok ? 'good' : 'bad'); });
+    });
+    wrap.appendChild(copy);
+    makeSaveCode().then(function (code) { out.value = code; }, function () { out.value = 'This browser could not make a code.'; });
+
+    var input = el('textarea');
+    input.rows = 3;
+    input.placeholder = 'Paste a save code here';
+    input.setAttribute('aria-label', 'Paste a save code');
+    wrap.appendChild(input);
+    wrap.appendChild(btn('Load this code', '', function () {
+      readSaveCode(input.value).then(function (data) {
+        if (!window.confirm('Replace the progress in this browser with this save? This cannot be undone.')) return;
+        Object.keys(data).forEach(function (k) { meta[k] = data[k]; });
+        save();
+        toast('Welcome back to 707.', 'good');
+        showTitle();
+      }, function () { toast('That code did not work. Check you copied all of it.', 'bad'); });
+    }));
+    return wrap;
   }
 
   /* ---------- Keyboard for the story ---------- */
