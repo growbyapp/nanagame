@@ -164,6 +164,57 @@ window.NG = window.NG || {};
     setTimeout(function () { t.remove(); }, 2200);
   }
 
+  /* ---------- Full screen ---------- */
+
+  // iPhones only allow full screen for apps added to the Home Screen; other devices get a real button.
+  function isStandalone() {
+    return window.navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches);
+  }
+  function canFullscreen() {
+    var d = document.documentElement;
+    return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled) && !!(d.requestFullscreen || d.webkitRequestFullscreen);
+  }
+  function isFullscreen() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+  function toggleFullscreen() {
+    var d = document.documentElement;
+    try {
+      if (isFullscreen()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      else {
+        var p = (d.requestFullscreen || d.webkitRequestFullscreen).call(d, { navigationUI: 'hide' });
+        if (p && p.catch) p.catch(function () { showInstallTip(); });
+      }
+    } catch (e) { showInstallTip(); }
+  }
+  function isIOS() {
+    return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+  function showInstallTip() {
+    var tip = el('div', 'install-tip');
+    var steps = isIOS()
+      ? '<ol><li>In Safari, tap the Share button (the square with an arrow). In Chrome, tap the Share icon in the address bar.</li><li>Choose <b>Add to Home Screen</b>.</li><li>Open Hey, Nana from your Home Screen.</li></ol>'
+      : '<ol><li>Open your browser menu.</li><li>Choose <b>Install app</b> or <b>Add to Home screen</b>.</li><li>Open Hey, Nana from your Home screen.</li></ol>';
+    var card = el('div', 'install-card', '<h3>Play full screen</h3><p>Add the game to your Home Screen and it opens like an app, with no browser bars.</p>' + steps +
+      '<p class="note">The Home Screen app keeps its own save. To bring your progress, copy your save code from Settings first and load it in the app.</p>');
+    card.appendChild(btn('Got it', 'primary', function () { tip.remove(); }));
+    tip.appendChild(card);
+    tip.addEventListener('click', function (e) { if (e.target === tip) tip.remove(); });
+    app.appendChild(tip);
+  }
+  function fullscreenButton() {
+    if (isStandalone()) return null;
+    var full = canFullscreen();
+    var b = el('button', 'corner-btn');
+    b.type = 'button';
+    b.textContent = full ? (isFullscreen() ? 'Exit full screen' : 'Full screen') : 'Full screen tip';
+    b.addEventListener('click', function (e) {
+      e.stopPropagation();
+      sfx('click');
+      if (full) { toggleFullscreen(); setTimeout(function () { b.textContent = isFullscreen() ? 'Exit full screen' : 'Full screen'; }, 300); }
+      else showInstallTip();
+    });
+    return b;
+  }
+
   /* ---------- Gate and title ---------- */
 
   function showGate() {
@@ -208,7 +259,9 @@ window.NG = window.NG || {};
     menu.appendChild(btn('Settings', 'ghost', showSettings));
     t.appendChild(menu);
     t.appendChild(el('p', 'disclaimer', 'Unofficial fan work. Not affiliated with Ai Yazawa or the rights holders.'));
-    mount(t);
+    var s = mount(t);
+    var fs = fullscreenButton();
+    if (fs) { var corner = el('div', 'corner-tools'); corner.appendChild(fs); s.appendChild(corner); }
   }
 
   /* ---------- Story runner ---------- */
@@ -1306,6 +1359,15 @@ window.NG = window.NG || {};
     if (NG.Audio && NG.Audio.hasVoice && NG.Audio.hasVoice()) slider('Voices', 'voice', 0, 1, 0.05, pct);
     slider('Note speed', 'speed', 0.6, 1.8, 0.1, function (v) { return v.toFixed(1) + 'x'; });
     slider('Timing offset (raise if your hits feel late)', 'offsetMs', -200, 200, 5, function (v) { return v + ' ms'; });
+
+    var fsBtn = fullscreenButton();
+    if (fsBtn) {
+      var fsRow = el('div', 'setting');
+      fsRow.innerHTML = '<label>Full screen</label>';
+      fsBtn.className = 'btn';
+      fsRow.appendChild(fsBtn);
+      form.appendChild(fsRow);
+    }
 
     var flash = el('div', 'setting');
     flash.innerHTML = '<label for="set-flash">Reduce flashing</label>';

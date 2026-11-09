@@ -362,7 +362,7 @@ window.NG = window.NG || {};
       clearInterval(timer);
       opts.onFinish(quit ? { score: 0, stars: 0, effects: {}, quit: true } : res);
     }
-    function btn(label, fn) { var b = make('button', 'mg-btn pn-btn', label); b.type = 'button'; b.addEventListener('click', fn); return b; }
+    function btn(label, fn) { var b = make('button', 'pn-btn', label); b.type = 'button'; b.addEventListener('click', fn); return b; }
 
     function howto() {
       body.innerHTML = '';

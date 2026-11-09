@@ -286,5 +286,21 @@ body { position: fixed; inset: 0; overflow: hidden; -webkit-touch-callout: none;
 .track-info b { font-family: var(--font-punk, Impact, sans-serif); font-weight: 400; font-size: 18px; letter-spacing: .03em; }
 .track-info span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .track-row .btn.ghost { color: var(--ink, #0d0b0c); border-color: var(--ink, #0d0b0c); }
-.pn-btn { min-height: 48px; padding: 8px 26px; font-family: var(--font-punk, Impact, sans-serif); font-size: 22px; letter-spacing: .04em; color: var(--paper, #f3ece0); background: var(--strawberry, #e8294f); border: 3px solid var(--paper, #f3ece0); box-shadow: 4px 4px 0 var(--ink-2, #1d191b); cursor: pointer; touch-action: manipulation; }
-.pn-card .pn-btn { border-color: var(--ink, #0d0b0c); }
+/* Literal colours on purpose: these buttons must read the same in every browser, iPhone included. */
+.pn-btn { -webkit-appearance: none; appearance: none; display: inline-block; min-height: 48px; padding: 10px 26px; font: 400 22px/1.1 Impact, "Arial Black", "Helvetica Neue", Arial, sans-serif; letter-spacing: .04em; text-transform: uppercase; color: #ffffff; -webkit-text-fill-color: #ffffff; background: #e8294f; border: 3px solid #f3ece0; border-radius: 0; box-shadow: 4px 4px 0 #1d191b; opacity: 1; cursor: pointer; touch-action: manipulation; }
+.pn-card .pn-btn { border-color: #0d0b0c; }
+.pn-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #1d191b; }
+
+/* The name tag sits on the dialogue box's top edge so it never covers the first words. */
+.vn-name { top: auto !important; bottom: calc(100% - 9px); line-height: 1.15; max-width: calc(100% - 70px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transform: rotate(-1.5deg); transform-origin: left bottom; }
+.vn-box { padding-top: 20px; }
+@media (min-width: 700px) { .vn-box { padding-top: 30px; } .vn-name { bottom: calc(100% - 12px); } }
+
+/* Full screen controls */
+.corner-tools { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 8px); right: calc(env(safe-area-inset-right, 0px) + 8px); z-index: 20; display: flex; gap: 6px; }
+.corner-btn { min-width: 44px; min-height: 44px; padding: 6px 10px; font-family: var(--font-letter, monospace); font-size: 13px; color: var(--paper, #f3ece0); background: rgba(13,11,12,.75); border: 1px solid rgba(243,236,224,.45); cursor: pointer; }
+.install-tip { position: absolute; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(13,11,12,.86); }
+.install-card { width: min(92vw, 420px); display: flex; flex-direction: column; gap: 10px; padding: 18px; color: var(--ink, #0d0b0c); background: var(--paper, #f3ece0); border: 3px solid var(--ink, #0d0b0c); box-shadow: 7px 7px 0 var(--pink, #ff6fa3); font-family: var(--font-letter, monospace); font-size: 15px; line-height: 1.4; }
+.install-card h3 { margin: 0; font-family: var(--font-punk, Impact, sans-serif); font-weight: 400; font-size: 26px; }
+.install-card ol { margin: 0; padding-left: 20px; }
+.install-card .note { font-size: 13px; opacity: .8; }
