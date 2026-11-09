@@ -1,0 +1,204 @@
+/* Staging for the visual novel: camera, character motion, ambience, props and screen effects.
+   Loops live here; one-shot moves are run from js/stage.js with the Web Animations API.
+   Everything animates transform or opacity only, and sits under the dialogue box (z-index 10). */
+
+/* ---------- camera ---------- */
+.vn-cam, .vn-shake { position: absolute; inset: 0; transform-origin: 50% 42%; }
+.vn-cam { transition: transform .9s cubic-bezier(.3,.7,.2,1); }
+
+/* ---------- characters ---------- */
+.vn-portraits .portrait.left { --dir: 1; }
+.vn-portraits .portrait.right { --dir: -1; }
+.vn-portraits .portrait { transition: filter .32s ease, transform .42s cubic-bezier(.2,.9,.3,1.12); }
+.st-actor, .st-pose, .st-emo, .st-idle { position: absolute; inset: 0; transform-origin: 50% 100%; }
+.st-pose { transition: transform .5s cubic-bezier(.3,.8,.3,1.1); }
+.st-idle { animation: st-breathe 4.2s ease-in-out infinite; }
+.portrait.right .st-idle { animation-delay: -1.7s; }
+.st-actor[data-expr="happy"] .st-idle { animation-duration: 2.8s; }
+.st-actor[data-expr="angry"] .st-idle, .st-actor[data-expr="shock"] .st-idle { animation-duration: 2.1s; }
+.st-actor[data-expr="sad"] .st-idle { animation-name: st-breathe-deep; animation-duration: 6s; }
+.st-marks { overflow: visible; pointer-events: none; }
+@keyframes st-breathe { 0%, 100% { transform: none; } 50% { transform: scale(1.006, 1.013) rotate(calc(var(--dir, 1) * .25deg)); } }
+@keyframes st-breathe-deep { 0%, 100% { transform: none; } 50% { transform: translateY(.5%) scale(1.004, 1.02); } }
+
+/* ---------- scene changes ---------- */
+.st-out { position: absolute; inset: 0; z-index: 6; overflow: hidden; pointer-events: none; }
+.st-out-in { position: absolute; inset: 0; }
+.st-out.wipe::after {
+  content: ""; position: absolute; top: 0; bottom: 0; right: 0; width: 26px; z-index: 3;
+  background: linear-gradient(90deg, var(--paper, #f3ece0) 0 4px, var(--red, #d3122a) 4px 58%, var(--ink, #0d0b0c) 58% 100%);
+}
+
+/* ---------- ambience ---------- */
+.st-amb { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.st-fx { position: absolute; inset: 0; }
+.st-fx i { position: absolute; display: block; }
+
+.st-snow i { top: -6%; border-radius: 50%; background: radial-gradient(circle, #fff 0 36%, rgba(255,255,255,0) 72%); animation: st-snow 10s linear infinite; }
+@keyframes st-snow { from { transform: translate3d(0, -8vh, 0); } to { transform: translate3d(var(--dx, 0), 112vh, 0); } }
+
+.st-rain i { top: -16%; width: 2px; background: linear-gradient(rgba(220,232,255,0), rgba(220,232,255,.85)); animation: st-rain .7s linear infinite; }
+@keyframes st-rain { from { transform: translate3d(0, -10vh, 0) rotate(17deg); } to { transform: translate3d(-36vh, 122vh, 0) rotate(17deg); } }
+.st-bolt { position: absolute; inset: 0; background: #dfe8ff; opacity: 0; animation: st-bolt 11s linear 3s infinite; }
+@keyframes st-bolt { 0%, 90%, 100% { opacity: 0; } 91% { opacity: .3; } 92% { opacity: .04; } 93.5% { opacity: .2; } 95% { opacity: 0; } }
+
+.st-dust i { border-radius: 50%; opacity: 0; box-shadow: 0 0 6px rgba(255,246,220,.8); animation: st-dust 12s ease-in-out infinite; }
+@keyframes st-dust { 0% { opacity: 0; transform: translate3d(0, 0, 0); } 20% { opacity: .8; } 80% { opacity: .55; } 100% { opacity: 0; transform: translate3d(var(--dx, 0), var(--dy, 0), 0); } }
+.st-beam {
+  position: absolute; left: 18%; top: -25%; width: 44%; height: 150%; transform: rotate(-16deg);
+  background: linear-gradient(90deg, rgba(255,240,214,0), rgba(255,240,214,.15) 40%, rgba(255,214,230,.08) 62%, rgba(255,240,214,0));
+  animation: st-glow 9s ease-in-out infinite alternate;
+}
+.st-beam.warm { background: linear-gradient(90deg, rgba(255,214,150,0), rgba(255,214,150,.16) 45%, rgba(255,214,150,0)); }
+.st-beam.dim { opacity: .55; animation: none; }
+.st-glow { position: absolute; inset: 0; animation: st-glow 5s ease-in-out infinite alternate; }
+.st-glow.warm { background: radial-gradient(ellipse at 50% 16%, rgba(255,190,110,.24), rgba(255,190,110,0) 62%); }
+@keyframes st-glow { from { opacity: .55; } to { opacity: 1; } }
+
+.st-steam i { bottom: 36%; border-radius: 50%; opacity: 0; background: radial-gradient(circle, rgba(255,255,255,.32), rgba(255,255,255,0) 65%); animation: st-steam 7s ease-out infinite; }
+@keyframes st-steam { 0% { opacity: 0; transform: translate3d(0, 0, 0) scale(.5); } 30% { opacity: .7; } 100% { opacity: 0; transform: translate3d(2vw, -26vh, 0) scale(1.6); } }
+
+.st-flicker {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 28% 0%, rgba(211,18,42,.3), rgba(211,18,42,0) 55%), radial-gradient(ellipse at 74% 0%, rgba(255,111,163,.26), rgba(255,111,163,0) 55%);
+  animation: st-flicker 6s steps(1, end) infinite;
+}
+.st-flicker.calm { animation: none; opacity: .8; }
+@keyframes st-flicker { 0% { opacity: .85; } 7% { opacity: .62; } 9% { opacity: .9; } 38% { opacity: .74; } 41% { opacity: .95; } 70% { opacity: .7; } 73% { opacity: .9; } }
+.st-haze {
+  position: absolute; left: -30%; right: -30%; bottom: 8%; height: 56%;
+  background: radial-gradient(ellipse at 30% 60%, rgba(243,236,224,.1), rgba(243,236,224,0) 60%), radial-gradient(ellipse at 70% 40%, rgba(255,111,163,.08), rgba(255,111,163,0) 60%);
+  animation: st-haze 18s ease-in-out infinite alternate;
+}
+@keyframes st-haze { from { transform: translate3d(-6%, 0, 0); } to { transform: translate3d(6%, -3%, 0); } }
+
+.st-neon { position: absolute; width: 80%; height: 60%; }
+.st-neon.a { left: -22%; top: -12%; background: radial-gradient(closest-side, rgba(255,111,163,.32), rgba(255,111,163,0)); animation: st-glow 5s ease-in-out infinite alternate; }
+.st-neon.b { right: -24%; top: 4%; background: radial-gradient(closest-side, rgba(90,220,255,.22), rgba(90,220,255,0)); animation: st-glow 7s ease-in-out infinite alternate-reverse; }
+.st-neon.buzz::after { content: ""; position: absolute; inset: 0; background: inherit; opacity: 0; animation: st-buzzout 9s steps(1, end) infinite; }
+@keyframes st-buzzout { 0%, 60%, 100% { opacity: 0; } 61% { opacity: .8; } 62% { opacity: 0; } 63% { opacity: .6; } 64% { opacity: 0; } }
+.st-car { position: absolute; left: 0; bottom: 17%; width: 40%; height: 5px; opacity: 0; background: linear-gradient(90deg, rgba(255,236,200,0), rgba(255,236,200,.55), rgba(255,236,200,0)); animation: st-car 9s linear 2s infinite; }
+@keyframes st-car { 0% { opacity: 0; transform: translate3d(-110%, 0, 0); } 4% { opacity: 1; } 30%, 100% { opacity: 0; transform: translate3d(260%, 0, 0); } }
+
+.st-bokeh i { border-radius: 50%; opacity: .2; background: radial-gradient(circle, var(--c, #fff) 0 28%, rgba(255,255,255,0) 70%); animation: st-bokeh 14s ease-in-out infinite alternate; }
+@keyframes st-bokeh { from { opacity: .1; transform: translate3d(0, 0, 0); } to { opacity: .38; transform: translate3d(var(--dx, 0), var(--dy, 0), 0); } }
+.st-ember i { bottom: -4%; border-radius: 50%; opacity: 0; box-shadow: 0 0 8px rgba(255,120,40,.9); animation: st-ember 7s ease-in infinite; }
+@keyframes st-ember { 0% { opacity: 0; transform: translate3d(0, 0, 0); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate3d(var(--dx, 0), -90vh, 0); } }
+.st-heat { position: absolute; left: 0; right: 0; bottom: 0; height: 42%; background: linear-gradient(0deg, rgba(255,80,20,.24), rgba(255,80,20,0)); animation: st-glow 2.6s ease-in-out infinite alternate; }
+.st-petal i { left: -6%; width: 10px; height: 7px; border-radius: 70% 0 70% 0; background: #ffb3cb; box-shadow: inset -2px -1px 0 rgba(232,41,79,.35); animation: st-petal 10s linear infinite; }
+@keyframes st-petal { from { transform: translate3d(0, 0, 0) rotate(0deg); } to { transform: translate3d(114vw, var(--dy, 20vh), 0) rotate(720deg); } }
+.st-pap i { width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; opacity: 0; background: radial-gradient(circle, #fff 0 12%, rgba(255,255,255,.5) 26%, rgba(255,255,255,0) 66%); animation: st-pap 8s linear infinite; }
+@keyframes st-pap { 0%, 92%, 100% { opacity: 0; transform: scale(.4); } 93% { opacity: .85; transform: scale(1); } 96% { opacity: 0; transform: scale(1.3); } }
+.st-pass { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(255,230,190,0) 40%, rgba(255,230,190,.1) 48%, rgba(255,230,190,0) 56%); animation: st-pass 2.8s linear infinite; }
+@keyframes st-pass { from { transform: translate3d(-60%, 0, 0); } to { transform: translate3d(60%, 0, 0); } }
+
+/* ---------- screen effects: everything here sits under the dialogue box ---------- */
+.st-veil { position: absolute; inset: 0; z-index: 8; overflow: hidden; pointer-events: none; }
+.st-veil > div { position: absolute; inset: 0; }
+.st-black { background: var(--ink, #0d0b0c); }
+.st-white { background: #fffaf0; opacity: 0; }
+.st-dim { background: radial-gradient(ellipse at 50% 42%, rgba(13,11,12,.3), rgba(13,11,12,.74)); }
+.st-vignette { opacity: 0; background: radial-gradient(ellipse at 50% 45%, rgba(110,8,24,0) 42%, rgba(110,8,24,.5) 82%, rgba(13,11,12,.85)); }
+.st-veil > .st-spot { inset: -100%; background: radial-gradient(circle at 50% 47.3%, rgba(13,11,12,0) 0 30vmin, rgba(13,11,12,.82) 58vmin); transition: transform .55s cubic-bezier(.3,.8,.3,1); }
+.st-veil > .st-disc {
+  inset: auto; left: 50%; top: 45%; width: 160vmax; height: 160vmax; margin: -80vmax 0 0 -80vmax; border-radius: 50%; transform: scale(0);
+  background: radial-gradient(circle at 2px 2px, rgba(13,11,12,.22) 1.4px, rgba(13,11,12,0) 2px) 0 0 / 10px 10px, var(--pink, #ff6fa3);
+  border: 14px solid var(--ink, #0d0b0c);
+}
+.st-lines { opacity: 0; }
+.st-lines svg { display: block; width: 100%; height: 100%; }
+.st-veil > .st-slamdust { top: auto; height: 34%; }
+.st-slamdust i { position: absolute; bottom: -12vw; width: 38vw; height: 38vw; border-radius: 50%; opacity: 0; background: radial-gradient(circle, rgba(243,236,224,.32), rgba(243,236,224,0) 65%); animation: st-puff 1s ease-out both; }
+.st-slamdust i:nth-child(1) { left: -10vw; } .st-slamdust i:nth-child(2) { left: 12vw; animation-delay: .05s; } .st-slamdust i:nth-child(3) { left: 32vw; animation-delay: .02s; }
+.st-slamdust i:nth-child(4) { left: 52vw; animation-delay: .07s; } .st-slamdust i:nth-child(5) { left: 74vw; }
+@keyframes st-puff { 0% { opacity: 0; transform: translate3d(0, 20%, 0) scale(.5); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate3d(0, -25%, 0) scale(1.3); } }
+
+/* ---------- props ---------- */
+.st-prop { position: absolute; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 48px); bottom: calc(150px + env(safe-area-inset-bottom, 0px)); z-index: 9; pointer-events: none; }
+.st-prop-card { position: absolute; left: 50%; top: 50%; width: min(78vw, 46dvh, 440px); height: min(78vw, 46dvh, 440px); transform: translate(-50%, -50%); }
+.st-prop.docked .st-prop-card { top: 0; width: min(26vw, 17dvh, 150px); height: min(26vw, 17dvh, 150px); transform: translate(-50%, 0); }
+.st-prop-in { position: absolute; inset: 0; transform: rotate(-2deg); }
+.st-prop.docked .st-prop-in { transform: rotate(-4deg); }
+.st-burst { position: absolute; inset: 0; width: 100%; height: 100%; animation: st-spin 48s linear infinite; }
+.st-prop-art { position: absolute; inset: 9%; filter: drop-shadow(4px 5px 0 rgba(13,11,12,.55)); }
+.st-prop-art svg, .st-phone svg { display: block; width: 100%; height: 100%; }
+.st-tape { position: absolute; top: -3%; left: 50%; width: 34%; height: 10%; margin-left: -17%; background: rgba(244,196,48,.72); transform: rotate(-4deg); }
+.st-prop.docked .st-tape { display: none; }
+.st-phone { position: absolute; top: 4px; right: calc(env(safe-area-inset-right, 0px) + 10px); width: min(24vw, 13dvh, 120px); height: min(24vw, 13dvh, 120px); transform: rotate(6deg); filter: drop-shadow(3px 4px 0 rgba(13,11,12,.6)); }
+
+.st-twinkle { transform-box: fill-box; transform-origin: center; animation: st-twinkle 1.6s ease-in-out infinite; }
+@keyframes st-twinkle { 0%, 100% { opacity: .6; transform: scale(.55) rotate(0deg); } 50% { opacity: 1; transform: scale(1.15) rotate(45deg); } }
+.st-flame { transform-box: fill-box; transform-origin: 50% 100%; animation: st-flame .24s ease-in-out infinite alternate; }
+@keyframes st-flame { from { transform: scale(1, 1); } to { transform: scale(.92, 1.1) skewX(-3deg); } }
+.st-buzz { animation: st-blink .5s ease-in-out infinite; }
+.st-pulse { animation: st-blink 1s ease-in-out infinite; }
+@keyframes st-blink { 0%, 100% { opacity: 1; } 50% { opacity: .2; } }
+.st-swing { transform-box: fill-box; transform-origin: 50% 0; animation: st-swing 2.4s ease-in-out infinite alternate; }
+@keyframes st-swing { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+.st-wobble { transform-box: fill-box; transform-origin: 50% 50%; animation: st-wobble 2.2s ease-in-out infinite alternate; }
+@keyframes st-wobble { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+.st-spin { transform-box: fill-box; transform-origin: 50% 50%; animation: st-spin 6s linear infinite; }
+@keyframes st-spin { to { transform: rotate(360deg); } }
+.st-clink { transform-box: fill-box; transform-origin: 50% 100%; animation: st-clink 1.3s ease-out infinite; }
+@keyframes st-clink { 0% { opacity: 0; transform: scale(.6); } 20% { opacity: 1; transform: scale(1.1); } 60%, 100% { opacity: 0; transform: scale(1.2); } }
+.st-shard { transform-box: fill-box; transform-origin: center; animation: st-shard 1.4s cubic-bezier(.5,0,.8,.6) .35s both; }
+@keyframes st-shard { 0% { transform: none; opacity: 1; } 85% { opacity: 1; } 100% { transform: translate(16px, 118px) rotate(70deg); opacity: 0; } }
+.st-drip { transform-box: fill-box; animation: st-drip 1.8s ease-in infinite; }
+@keyframes st-drip { 0% { opacity: 0; transform: translateY(-10px); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(46px); } }
+.st-step { transform-box: fill-box; transform-origin: center; animation: st-step .38s cubic-bezier(.2,1.5,.4,1) both; }
+@keyframes st-step { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: none; } }
+
+/* ---------- overlays from main.js, with a flourish ---------- */
+.vn .letter { animation: st-letter-in .8s cubic-bezier(.2,.85,.25,1.05) both; }
+@keyframes st-letter-in { 0% { opacity: 0; transform: translateY(70vh) rotate(9deg); } 50% { opacity: 1; } 78% { transform: translateY(-10px) rotate(-2.2deg); } 100% { opacity: 1; transform: rotate(-.9deg); } }
+.vn .letter-text { animation: st-ink .7s ease .55s both; }
+@keyframes st-ink { from { opacity: 0; } to { opacity: 1; } }
+.vn .letter-author { animation: st-author-in .6s cubic-bezier(.2,.9,.3,1.1) .45s both; }
+@keyframes st-author-in { from { opacity: 0; transform: translateX(-60%) rotate(-6deg); } to { opacity: 1; transform: none; } }
+.vn .letter-wrap::before { animation: st-tape .35s cubic-bezier(.2,1.4,.4,1) .7s both; }
+@keyframes st-tape { from { opacity: 0; transform: translateY(-20px) rotate(-3deg) scale(1.6); } to { opacity: 1; transform: rotate(-3deg); } }
+
+.st-rays {
+  position: absolute; left: 50%; top: 50%; width: 150vmax; height: 150vmax; margin: -75vmax 0 0 -75vmax; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(13,11,12,0) 0 12%, rgba(13,11,12,.6) 62%), repeating-conic-gradient(from 0deg, rgba(244,196,48,.2) 0 7deg, rgba(244,196,48,0) 7deg 18deg);
+  animation: st-spin 40s linear infinite;
+}
+.vn .keepsake-card { position: relative; z-index: 1; animation: st-keep-in .7s cubic-bezier(.2,1.3,.4,1) both; }
+@keyframes st-keep-in { 0% { opacity: 0; transform: translateY(-40vh) rotate(-14deg) scale(.8); } 60% { opacity: 1; transform: translateY(8px) rotate(3deg) scale(1.03); } 100% { opacity: 1; transform: rotate(-1.2deg); } }
+.vn .keepsake-art { position: relative; animation: st-keep-art .9s cubic-bezier(.2,1.6,.4,1) .35s both; }
+@keyframes st-keep-art { 0% { transform: scale(0) rotate(-30deg); } 70% { transform: scale(1.12) rotate(6deg); } 100% { transform: none; } }
+.st-sparks { position: absolute; top: 0; bottom: 0; left: -36%; right: -36%; display: flex; justify-content: space-between; pointer-events: none; }
+.st-sparks svg { display: block; width: 30%; height: 100%; }
+
+.vn .polaroid-pop .polaroid { animation: st-polaroid-in .75s cubic-bezier(.2,.9,.3,1.1) both; }
+@keyframes st-polaroid-in { 0% { opacity: 0; transform: translateY(45vh) rotate(10deg) scale(.9); } 65% { opacity: 1; transform: translateY(-8px) rotate(-4deg); } 100% { opacity: 1; transform: rotate(-2deg); } }
+.polaroid.st-develop .polaroid-art::after { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: #efe6d2; animation: st-develop 2.8s ease-out .5s both; }
+@keyframes st-develop { from { opacity: 1; } to { opacity: 0; } }
+.st-camflash { position: absolute; inset: 0; z-index: 5; pointer-events: none; background: #fff; animation: st-camflash .5s ease-out both; }
+@keyframes st-camflash { from { opacity: .95; } to { opacity: 0; } }
+
+/* ---------- layouts: keep props in the space above the dialogue box ---------- */
+@media (max-width: 374px), (max-height: 680px) and (orientation: portrait) {
+  .st-prop { bottom: calc(128px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (min-width: 700px) and (orientation: portrait), (min-width: 900px) and (min-height: 560px) {
+  .st-prop { top: calc(env(safe-area-inset-top, 0px) + 64px); bottom: calc(222px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .st-prop { top: calc(env(safe-area-inset-top, 0px) + 44px); bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
+  .st-prop-card { width: min(40vw, 54dvh, 300px); height: min(40vw, 54dvh, 300px); }
+  .st-prop.docked .st-prop-card { width: min(16vw, 20dvh, 110px); height: min(16vw, 20dvh, 110px); }
+}
+
+/* ---------- skipping, reduced flashing and reduced motion ---------- */
+.vn.st-fast .st-pose, .vn.st-fast .vn-cam, .vn.st-fast .vn-portraits .portrait, .vn.st-fast .st-veil > .st-spot { transition: none !important; }
+.vn.st-noflash .st-bolt, .vn.st-noflash .st-pap, .vn.st-noflash .st-neon.buzz::after, .vn.st-noflash .st-camflash { display: none; }
+.vn.st-noflash .st-flicker { animation: none; opacity: .8; }
+.vn.st-still .st-idle, .vn.st-still .st-prop-svg *, .vn.st-still .st-burst, .vn.st-still .st-rays, .vn.st-still .st-glow, .vn.st-still .st-beam, .vn.st-still .st-neon { animation: none !important; }
+.vn.st-still .st-fx, .vn.st-still .st-haze, .vn.st-still .st-car, .vn.st-still .st-pass, .vn.st-still .st-bolt, .vn.st-still .st-slamdust { display: none; }
+.vn.st-still .st-pose, .vn.st-still .vn-cam { transition-duration: .2s; }
+@media (prefers-reduced-motion: reduce) {
+  .st-idle, .st-prop-svg *, .st-burst, .st-rays, .st-glow, .st-beam, .st-neon, .st-flicker { animation: none !important; }
+  .st-fx, .st-haze, .st-car, .st-pass, .st-bolt, .st-slamdust, .st-camflash { display: none !important; }
+  .polaroid.st-develop .polaroid-art::after { display: none; }
+}

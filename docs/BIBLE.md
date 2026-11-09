@@ -66,7 +66,7 @@ Late-series tragedies are only hinted at ("there were not so many of us at the t
 
 | Ending | Needs |
 | --- | --- |
-| The Lights in 707 | bond 22+, harmony 8+, scandal 12 or less, flag `left-the-light-on`, boss beaten |
+| The Lights in 707 | bond 18+, harmony 8+, scandal 12 or less, flag `left-the-light-on`, boss beaten |
 | The Arena, and One Empty Chair | flag `chose-stage`, boss beaten |
 | Still at the Station | boss beaten |
 | Demon Lord: The Musical | boss not beaten |

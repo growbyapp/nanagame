@@ -13,6 +13,7 @@ window.NG = window.NG || {};
   function ch(prompt, options, timer) { var s = { type: 'choice', prompt: prompt, options: options }; if (timer) s.timer = timer; return s; }
   function qt(prompt, seconds, taps, success, fail) { return { type: 'qte', prompt: prompt, seconds: seconds, taps: taps, success: success, fail: fail }; }
   function re(text) { return { type: 'remember', text: text }; }
+  function st(effects) { return { type: 'stat', effects: effects }; }
   function en(id) { return { type: 'wfend', id: id }; }
 
   /* 1 ------------------------------------------------------------------ */
@@ -31,9 +32,10 @@ window.NG = window.NG || {};
       sc('tokyo-night'), mu('sad'),
       le('Hey, Nana. I have rewritten this night in my head so many times that the paper has gone soft. Let me tell it the way I wish it went.'),
       na('It was past one. I was on the floor of a too-expensive apartment, eating cold rice over the sink, like a dog somebody had left a fortune to.'),
+      { type: 'fx', id: 'phone-buzz' },
       na('My phone lit up. Ren. Ren never called me. I don\'t think Ren knew he owned my number.'),
       na('It went to voicemail before I could get the rice out of my mouth. Forty seconds. No words. Just someone breathing, and a lighter.'),
-      sl('hachi', 'shock', 'Ren? That\'s not a wrong number, is it. Nobody breathes that sadly by accident.'),
+      sl('hachi', 'shock', 'Ren? That\'s not a wrong number, is it? Nobody breathes that sadly by accident.'),
       ch('Something is wrong and you have about one good phone call in you.', [
         { label: 'Call Yasu. He always knows what to do.', flag: 'told_yasu', rel: { yasu: 1 }, remember: 'Yasu will remember who called him first.', reply: [
           sc('studio'),
@@ -44,10 +46,10 @@ window.NG = window.NG || {};
         ], next: 'garage' },
         { label: 'Call Nana. Whatever is between them, it\'s hers.', flag: 'called_nana', rel: { nana: 2 }, remember: 'Nana will remember that you called her.', reply: [
           sc('rooftop'),
-          sr('nana', 'angry', 'It\'s one in the morning. If this is about cake I\'m changing my name again.'),
+          sr('nana', 'angry', 'It\'s one in the morning. If this is about cake, I\'m hanging up.'),
           sl('hachi', 'sad', 'It\'s Ren. He left me breathing. I think he wanted to call you and got scared and pressed me.'),
           sr('nana', 'neutral', 'Ren doesn\'t get scared. Ren gets tired and calls it being busy.'),
-          na('A very long pause. I heard her light a cigarette and not smoke it.'),
+          na('A pause so long I checked the signal. I heard her light a cigarette and not smoke it.'),
           sr('nana', 'sad', 'Fine. I\'ll keep my phone on. That\'s not me caring. That\'s me owning a phone.')
         ], next: 'garage' },
         { label: 'No time. Get a taxi and go to him yourself.', flag: 'ran', rel: { ren: 1 }, remember: 'Ren noticed you came alone.', reply: [
@@ -59,7 +61,7 @@ window.NG = window.NG || {};
       sr('ren', 'neutral', 'Hachi. You\'re wearing slippers.'),
       sl('hachi', 'sad', 'And you\'re wearing that face. Where are you going?'),
       sr('ren', 'neutral', 'For a drive. Somebody\'s got a key I need.'),
-      na('He was far too calm, like a house with all the lights on and nobody home. His hands were very careful, the way a person is careful on ice. The car keys were in the left one.'),
+      na('He was calm in the wrong way. His hands were careful about everything. The car keys were in the left one.'),
       ch('He\'s walking to the car.', [
         { label: 'Give me the keys, Ren.', flag: 'demanded', rel: { ren: -1 }, reply: [
           sr('ren', 'angry', 'No.'),
@@ -67,7 +69,7 @@ window.NG = window.NG || {};
         ], next: 'grab' },
         { label: 'Then take me with you.', flag: 'ride', rel: { ren: 1 }, reply: [
           sr('ren', 'smirk', 'You get carsick in elevators.'),
-          sl('hachi', 'happy', 'Then you\'ll have to drive very slowly, and it will be your fault if I ruin your seats.')
+          sl('hachi', 'happy', 'Then you\'ll have to drive slowly, and it\'ll be your fault if I ruin your seats.')
         ], next: 'ride' },
         { label: '[Say nothing]', silent: true, reply: [ na('I opened my mouth. I\'m so sorry. Nothing came out, and the door shut, and the engine turned over.') ], next: 'he_goes' }
       ], 6),
@@ -76,9 +78,11 @@ window.NG = window.NG || {};
         [ na('I got two fingers through the ring and held on like a dog with a slipper. It\'s what I was named for.'), ju('keys_taken') ],
         [ na('He lifted them out of reach without even looking. Not unkindly. That was the worst part.'), ju('he_goes') ]),
 
-      lb('keys_taken'), sc('rooftop'), mu('sad'),
-      na('He didn\'t fight me for them. He sat down on the concrete, all at once, like a puppet being put away.'),
+      lb('keys_taken'), sc('tokyo-night'), mu('sad'),
+      na('He didn\'t fight me. He just sat down on the concrete, all at once.'),
       sr('ren', 'sad', 'I was only going to ask her to open it. It\'s getting heavy.'),
+      na('The padlock. He meant the padlock at his throat, the one she put there when they were kids. There is one key, and Nana has never once let it out of 707.'),
+      { type: 'prop', id: 'padlock' },
       sl('hachi', 'sad', 'Then ask her in the daytime. With your coat on properly.'),
       sr('ren', 'neutral', 'Yasu knows, you know. About how bad. He\'s stopped saying so. That\'s how you can tell.'),
       ch('Ren has never told anyone this much. What do you do with it?', [
@@ -100,7 +104,7 @@ window.NG = window.NG || {};
       sr('ren', 'sad', 'They do this now. They didn\'t used to. I could play anything.'),
       ju('call_from_car', { flag: 'called_nana' }),
       ch('His hands are shaking at the wheel. You have one chance to change who\'s driving.', [
-        { label: 'Swap seats. You have a licence. Technically.', rel: { ren: 1 }, reply: [
+        { label: 'Swap seats. You have a licence. Technically.', flag: 'swapped', rel: { ren: 1 }, reply: [
           sl('hachi', 'happy', 'I passed the test on the third go and only one of those cones had family.'),
           sr('ren', 'smirk', 'I\'m going to die in this car after all.')
         ], next: 'passenger_end' },
@@ -119,7 +123,7 @@ window.NG = window.NG || {};
       ju('the_road'),
 
       lb('yasu_blocks'), sc('tokyo-night'),
-      na('The car got as far as the ramp. Then it stopped, because there was a very old van parked across the exit and a bald man leaning on it.'),
+      na('The car got as far as the ramp. Then it stopped, because there was a van older than me parked across the exit and a bald man leaning on it.'),
       sr('yasu', 'neutral', 'Evening, Ren. Terrible parking on my part. I may be here until spring.'),
       sl('ren', 'angry', 'Move it, Yasu.'),
       sr('yasu', 'neutral', 'I have moved everything for you since you were seventeen. Tonight I find I have a bad back.'),
@@ -128,17 +132,17 @@ window.NG = window.NG || {};
       na('I\'d known that man for years and I had never once been frightened of him. Ren turned off the engine.'),
       ch('Yasu looks at you over Ren\'s shoulder. He can\'t say this next part. You can.', [
         { label: 'Say it out loud: everyone knows he\'s using.', rel: { ren: -1, yasu: 2 }, reply: [
-          sl('hachi', 'sad', 'We know, Ren. All of us. We\'ve been so polite about it that you might die of manners.'),
+          sl('hachi', 'sad', 'We know, Ren. All of us. We\'ve been too polite to say it, and I\'m so sorry we were.'),
           na('Nobody had ever said it in that garage, or possibly in that decade.')
         ], next: 'clinic_end' },
         { label: 'Tell him Nana would rather have him alive and late.', rel: { ren: 1, nana: 1 }, reply: [
           sl('hachi', 'sad', 'She can wait until morning. She\'s waited through worse. Let Yasu drive you. Please.'),
-          sr('yasu', 'smirk', 'I do excellent driving. I have been told it is like being carried by a disappointed father.')
+          sr('yasu', 'smirk', 'I\'m a very good driver. People say it\'s like being carried by a disappointed father.')
         ], next: 'passenger_end' }
       ]),
 
       lb('phone_rings'), sc('rooftop'), mu('sad'),
-      sr('nana', 'angry', 'Ren. It\'s Nana. I know it\'s you, because nobody else breathes like a closing shop.'),
+      sr('nana', 'angry', 'Ren. It\'s me. I know it\'s you. Nobody else breathes like a shop closing.'),
       sl('ren', 'shock', 'Nana.'),
       sr('nana', 'neutral', 'Whatever you\'re bringing, don\'t bring it tonight. I look terrible and I\'m very busy not waiting.'),
       sl('ren', 'sad', 'I wanted you to open it.'),
@@ -148,7 +152,7 @@ window.NG = window.NG || {};
 
       lb('answered_end'), sc('tokyo-night'), mu('room'),
       re('He stayed.'),
-      na('In the morning she took the first train and didn\'t tell anyone, and I pretended not to know, which I did very badly.'),
+      na('In the morning she took the first train and didn\'t tell anyone, and I pretended not to know, which I\'ve always been terrible at.'),
       en('answered'),
 
       lb('clinic_end'), sc('platform'), mu('room'),
@@ -156,12 +160,19 @@ window.NG = window.NG || {};
       sr('takumi', 'neutral', 'Ninety days. Then we will discuss whether there is still a guitarist.'),
       na('Nana went to see him on day thirty. She brought nothing, stayed four minutes, and came back on day thirty-one.'),
       sl('nana', 'neutral', 'Don\'t look at me like that, Hachi. I left my lighter there.'),
+      { type: 'prop', id: 'lighter' },
       en('clinic'),
 
       lb('passenger_end'), sc('road-van'), mu('room'),
       na('We got there at dawn. It took us four hours to do what should have taken two, and it was the best journey of my life.'),
+      ju('pass_yasu', { notFlag: 'swapped' }),
       sr('ren', 'smirk', 'You\'re the worst driver I have ever met.'),
       sl('hachi', 'happy', 'And yet!'),
+      ju('pass_done'),
+      lb('pass_yasu'),
+      sr('ren', 'neutral', 'Yasu drives like it\'s raining.'),
+      sl('yasu', 'neutral', 'I drive like a man with the only licence in the car.'),
+      lb('pass_done'),
       na('He stood outside her door with his hands in his pockets for a long time. Nana opened it before he knocked.'),
       en('passenger'),
 
@@ -193,22 +204,25 @@ window.NG = window.NG || {};
       na('Two lines. I looked at them for so long that I believe they got embarrassed.'),
       sl('hachi', 'shock', 'Okay. Okay okay okay. Okay. Who do I tell? Is there a form?'),
       sr('junko', 'neutral', 'Komatsu Nana. Sit down. Whose is it, and don\'t say fate.'),
-      sl('hachi', 'sad', 'I don\'t know, Jun-chan. That\'s the whole horrible sentence.'),
-      sr('junko', 'neutral', 'Then you know the important thing. You\'re going to have to be a grown-up. I brought tea.'),
+      sl('hachi', 'sad', 'I don\'t know, Jun-chan. Takumi, or Nobu. That\'s the whole horrible sentence.'),
+      sr('junko', 'neutral', 'Then that\'s your answer for now. "I don\'t know" is allowed. Drink this.'),
       ch('Before you tell anyone else, who do you owe the truth?', [
         { label: 'Tell Nana first. It\'s her home too.', flag: 'told_nana', rel: { nana: 2 }, remember: 'Nana will remember you came to her first.', reply: [
           sr('nana', 'neutral', 'Well. That explains why you cried at a tofu advert.'),
           sr('nana', 'sad', 'Whatever you pick, there\'s a room here. I\'ll be horrible about it. There\'s still a room.')
         ] },
         { label: 'Tell Nobu first. You owe him the worst of it.', flag: 'told_nobu_first', rel: { nobu: 2 }, reply: [
-          na('He had been restringing something. He put it down very carefully, as if it could wake up.') ] },
+          na('He had been restringing something. He put it down slowly, as if it could wake up.') ] },
         { label: 'Tell no one yet. Buy a cake and think.', rel: { nana: -1 }, reply: [
           na('I ate an entire strawberry shortcake on a bench in the cold. It didn\'t advise me.') ] }
       ]),
       sc('live-house'), mu('room'),
+      ju('nobu_knew', { flag: 'told_nobu_first' }),
+      na('I told him the next day. I\'d have had to anyway. He can count, whatever he lets people think.'),
+      lb('nobu_knew'),
       sr('nobu', 'shock', 'Mine or not, I don\'t care! I mean I care! I care in the good way!'),
       ju('nobu_no_days', { notFlag: 'told_nobu_first' }),
-      sr('nobu', 'neutral', 'You told me first. Before anyone. I\'ve thought about that for two days. I keep thinking about it. It\'s my favourite thing.'),
+      sr('nobu', 'neutral', 'You told me first. Before anyone. I\'ve been thinking about that for two days. It\'s my favourite thing.'),
       lb('nobu_no_days'),
       sl('hachi', 'sad', 'Nobu, you can\'t just decide that. You\'re twenty. You have a band. You can\'t even fold a towel.'),
       sr('nobu', 'happy', 'I decide it all the time! I decided about you on the first day and nobody has been able to stop me.'),
@@ -226,7 +240,7 @@ window.NG = window.NG || {};
       sc('inn'), mu('room'),
       na('The inn was older than everyone\'s feelings. Nobu\'s mother knelt at the entrance and looked at my shoes.'),
       sr('nobu', 'shock', 'I brought home a girl and a situation!'),
-      na('She didn\'t say anything for a while. Then she told me my posture was a tragedy, and put a bowl of soup in my hands.'),
+      na('She finished with my shoes and started on me. Then she told me my posture was a tragedy, and put a bowl of soup in my hands.'),
       na('I learned about towels. I learned that guests don\'t want to see you carry anything. I learned the word for each kind of pickle.'),
       sr('nobu', 'happy', 'See? You\'re a natural! The man in room four says you\'re very loud in a nice way.'),
       ju('no_nana_inn', { notFlag: 'told_nana' }),
@@ -235,6 +249,9 @@ window.NG = window.NG || {};
       na('This was a lie. You said it to Nobu\'s mother while folding a guest towel in thirds, perfectly, looking her in the eye. I\'ve never loved anyone more.'),
       sr('nana', 'smirk', 'She\'s loud. She\'ll cry on your floors. Feed her, or I\'ll come back.'),
       lb('no_nana_inn'),
+      ju('wedding', { flag: 'told_nana' }),
+      na('Junko told you. Of course she did.'),
+      lb('wedding'),
       na('We got married at the shrine up the hill, in the rain. You stood at the back and didn\'t say one word, and when I walked past you fixed my collar so hard it hurt.'),
       ju('no_altar', { notFlag: 'yes_nobu' }),
       na('Nobu said yes before the priest had asked him anything.'),
@@ -254,17 +271,17 @@ window.NG = window.NG || {};
       ]),
       lb('knock'), sc('inn'), mu('tension'),
       na('The baby was a girl and nobody had to discuss it, because nobody could look anywhere but at her. Then, in the fifth month, a black car.'),
-      sr('takumi', 'neutral', 'You have kept this very tidy, Nana. I had to hear it from an accountant.'),
       na('He has never once called me Hachi. In all these years. I still can\'t tell you if that\'s love or bookkeeping.'),
+      sr('takumi', 'neutral', 'You have kept this very tidy, Nana. I had to hear it from an accountant.'),
       ju('nobu_steady', { flag: 'honest' }),
       sl('nobu', 'angry', 'Get out of my mother\'s house.'),
       ju('nobu_said'),
       lb('nobu_steady'),
-      na('Nobu knelt first. Four generations of that doorway came up through his knees, and he bowed to the man, properly, and he didn\'t shake at all.'),
+      na('He knelt first, the way his family always had at that door, and he bowed to the man properly, and he didn\'t shake at all.'),
       sl('nobu', 'neutral', 'She told me it might be yours before any of this happened. So you\'ve brought no news. Please leave my mother\'s house.'),
       lb('nobu_said'),
       sr('takumi', 'neutral', 'I will, in a moment. There is a blood test. There are lawyers. Or there is a conversation. Nana decides.'),
-      ch('Takumi is holding out a folder. Nobu is holding very still.', [
+      ch('Takumi is holding out a folder. Nobu hasn\'t moved.', [
         { label: 'Take the folder. She deserves to know where she comes from.', flag: 'test', rel: { nobu: -2, takumi: 1 }, reply: [
           sr('nobu', 'sad', 'Right. Yes. No, it\'s right.') ], next: 'result' },
         { label: 'Hold the baby closer. She has a father. Get out.', flag: 'refused', rel: { nobu: 2, takumi: -2 }, reply: [
@@ -285,7 +302,7 @@ window.NG = window.NG || {};
       en('inn_life'),
 
       lb('result'), sc('hometown'), mu('sad'),
-      na('The envelope told me the thing I had known since the bench. It was his. Takumi\'s.'),
+      na('The envelope told me the thing a part of me had known all along. It was his. Takumi\'s.'),
       sr('nobu', 'sad', 'Well. She\'s got my mother\'s opinions, whatever a piece of paper says.'),
       ch('He\'s being so kind. It\'s becoming hard to breathe in here.', [
         { label: 'Try to make it work with all of them, in the open.', rel: { takumi: 1, nobu: 1 }, reply: [
@@ -301,6 +318,8 @@ window.NG = window.NG || {};
       ]),
       lb('two_end'), sc('room-707'), mu('room'),
       na('Every birthday there\'s one cake and two men who stand at opposite ends of the room discussing the weather as though it had wronged them.'),
+      sr('takumi', 'neutral', 'The cake is too sweet.'),
+      sl('nobu', 'neutral', 'She likes it.'),
       sr('nana', 'smirk', 'I come for the atmosphere.'),
       en('two_fathers'),
       lb('release'), sc('road-van'), mu('sad'),
@@ -308,6 +327,9 @@ window.NG = window.NG || {};
       sr('nobu', 'happy', 'If he\'s ever bad to you, I\'ll hit him! I\'ll lose, but I\'ll do it!'),
       en('let_go'),
       lb('her_way'), sc('tokyo-night'), mu('room'),
+      ju('her_way_room', { notFlag: 'refused' }),
+      na('I was grateful to him every single day, and that turned out to be the problem. I left in March, with the baby and one bag.'),
+      lb('her_way_room'),
       na('A room with a window and a stove with one good ring. I got a job at a bakery that shouted at me. She learned to walk toward the smell.'),
       sr('nana', 'neutral', 'You\'re doing it wrong. Give me that. ...You\'re doing it all right. Don\'t repeat that.'),
       en('her_own')
@@ -330,6 +352,7 @@ window.NG = window.NG || {};
       sc('room-707'), mu('room'),
       le('Hey, Nana. The strange thing about that apartment is that I can still walk through it in the dark. Let me go back to the night with the boxes. I\'d like to do it properly this time.'),
       na('You weren\'t speaking to me, and you were doing it so thoroughly that I\'d started apologising to the kettle.'),
+      na('Tomorrow the movers take me to Takumi\'s. To the baby, and the room with the echo.'),
       sr('shin', 'smirk', 'This box says FRAGILE, then in smaller writing, LIKE HACHI. I\'m only reading what\'s written.'),
       sl('hachi', 'angry', 'Shin! Put that down and stop being a teenager at me.'),
       sr('nobu', 'shock', 'The fridge doesn\'t go through the door! How did the fridge get in? Who built this fridge in here?'),
@@ -337,14 +360,14 @@ window.NG = window.NG || {};
       na('It was the first thing you had said all day, and you said it to the fridge.'),
       na('The two glasses were on the windowsill. Red strawberries, a chip on yours. Shin picked one up and it went straight through his fingers.'),
       qt('CATCH THE GLASS!', 2, 6,
-        [ re('The glass is safe.'), na('I threw myself across a box of records. I caught it against my chest and I have the bruise in my memory to this day.'),
+        [ re('The glass is safe.'), st({ bond: 1 }), na('I threw myself across a box of records. I caught it against my chest and I have the bruise in my memory to this day.'),
           sr('shin', 'shock', 'That was the fastest I have ever seen you move for anything that wasn\'t food.') ],
         [ na('It hit the floor and rolled. It didn\'t break. It just lost a small piece of the rim, next to the old chip, and we all looked at it.'),
-          sr('shin', 'sad', '...I\'ll buy another one. I\'ll work. I\'m very sorry.'),
+          sr('shin', 'sad', '...I\'ll buy another one. I\'ll work. I\'m sorry.'),
           sr('nana', 'sad', 'You can\'t buy that one, kid. Go and help Nobu.') ]),
       na('Everyone went out for food, loudly and on purpose, the way people leave a room with a bomb in it. Then it was only us and the boxes.'),
       mu('sad'),
-      ch('She\'s sitting on the windowsill with her back to you. You could start this a few ways.', [
+      ch('She\'s sitting on the windowsill with her back to you, smoking. You could start this a few ways.', [
         { label: '"I\'m scared to go, and I said I wasn\'t."', flag: 'scared', rel: { nana: 2 }, remember: 'Nana will remember you said it first.', reply: [
           sr('nana', 'neutral', 'You packed your spoons three days early. I noticed.') ] },
         { label: '"You could have asked me to stay, you know."', flag: 'accused', rel: { nana: -1 }, remember: 'Nana heard the blame in that.', reply: [
@@ -356,6 +379,7 @@ window.NG = window.NG || {};
       sl('hachi', 'sad', 'Does it work?'),
       sr('nana', 'smirk', 'I\'ve been told my system has some flaws.'),
       ju('hurt_path', { flag: 'accused' }),
+      lb('the_door'),
       ch('This is the door. She has never opened it this far.', [
         { label: 'Tell her you want to stay here. With her. Really.', flag: 'stay', rel: { nana: 2 }, reply: [
           sl('hachi', 'happy', 'I don\'t want a penthouse, Nana. It has an echo. I keep apologising to it.') ], next: 'takumi_calls' },
@@ -364,18 +388,19 @@ window.NG = window.NG || {};
       ]),
       lb('hurt_path'), mu('tension'),
       sl('hachi', 'angry', 'That\'s not fair! You never ask anyone for anything and then you\'re furious when nobody guesses!'),
-      sr('nana', 'angry', 'And you ask everyone for everything, and take the first one who says yes!'),
-      na('It went very quiet. There are some sentences you can see leaving your own mouth, Nana. I know you saw that one too.'),
+      sr('nana', 'angry', 'And you ask everyone for everything and say yes to the first one who answers.'),
+      na('You put your cigarette out half-smoked. There are some sentences you can see leaving your own mouth, Nana. I know you saw that one too.'),
       ch('You could still reach her. Or you could pick up the box.', [
         { label: 'Apologise. Properly, with no but.', rel: { nana: 2 }, flag: 'apologised', reply: [
           sl('hachi', 'sad', 'I\'m sorry. That was mean. It was also true of you, but I\'m sorry anyway. Wait, that was a but.'),
           sr('nana', 'smirk', 'You\'re the worst at this in all of Japan.')
-        ], next: 'takumi_calls' },
+        ], next: 'the_door' },
         { label: 'Pick up the box.', rel: { nana: -2 }, reply: [ na('It wasn\'t even a heavy box.') ], next: 'empty_end' },
         { label: '[Say nothing]', silent: true, reply: [ na('You looked at me. I looked at the floor. I think we might have stayed like that forever if the door hadn\'t opened.') ], next: 'empty_end' }
       ], 7),
 
       lb('takumi_calls'), mu('tension'),
+      { type: 'fx', id: 'phone-buzz' },
       na('My phone buzzed against the floorboards and jumped a little, like something alive. Takumi.'),
       ch('He\'ll be downstairs at eight. It\'s ringing.', [
         { label: 'Answer it and tell him the truth tonight.', flag: 'told_takumi', rel: { nana: 1, takumi: -1 }, reply: [
@@ -417,7 +442,10 @@ window.NG = window.NG || {};
 
       lb('empty_end'), sc('platform'), mu('sad'),
       re('The glasses went in different boxes.'),
-      na('The movers came at eight and they were very good. It took less than an hour to make it look like nobody had ever laughed there.'),
+      na('The movers came at eight and they were good at it. It took less than an hour to make it look like nobody had ever laughed there.'),
+      ju('no_chip', { bond: 1 }),
+      na('The glass with the second chip went in the box marked HACHI. Nobody wrote that. It was just the box it was nearest.'),
+      lb('no_chip'),
       en('empty')
     ]
   };
@@ -436,14 +464,14 @@ window.NG = window.NG || {};
     },
     steps: [
       sc('train-snow'), mu('sad'),
-      le('Hey, Nana. You told me this one on a very drunk night and made me swear I never heard it. So: I never heard it, and here\'s how it goes.'),
+      le('Hey, Nana. You told me this one drunk, at three in the morning, and made me swear I never heard it. So: I never heard it, and here\'s how it goes.'),
       sc('platform'),
       na('Snow on the rails. A town with one good bakery and no reason to stay. Ren had a ticket and a guitar case and nothing else in the world he was going to mention.'),
       sr('ren', 'neutral', 'It leaves in six minutes.'),
       sl('nana', 'neutral', 'I can read a timetable.'),
       sr('ren', 'neutral', 'Yeah.'),
       na('That was the whole conversation, Nana. You told me it was the most anyone ever said to you.'),
-      sr('yasu', 'neutral', 'I will be in the car. I am very interested in the car. Take as long as you need.'),
+      sr('yasu', 'neutral', 'I\'ll be in the car. I\'m very interested in the car. Take as long as you need.'),
       sr('nobu', 'sad', 'Nana! If you go, Black Stones is me and a bald guy! We\'re just a meeting!'),
       ch('The train is coming in. You have always told yourself what you\'d do here.', [
         { label: 'Get on the train. Don\'t look at Nobu.', flag: 'on_train', rel: { ren: 2, nobu: -2 }, remember: 'Nobu watched you go.', reply: [
@@ -455,7 +483,7 @@ window.NG = window.NG || {};
       ], 8),
 
       lb('stayed_behind'), sc('hometown'), mu('room'),
-      na('She went back to the car. Yasu turned the heater up without being asked. Nobody said anything until the second traffic light.'),
+      na('She went back to the car. Yasu turned the heater up without being asked, and let two sets of lights go by before he spoke.'),
       sr('yasu', 'neutral', 'There\'s a train every day, Nana. Tokyo isn\'t going anywhere.'),
       ch('You can go after him, or you can go after what you were before him.', [
         { label: 'Book the rehearsal room. Black Stones plays Saturday.', flag: 'kept_band', rel: { nobu: 2, yasu: 1 }, reply: [
@@ -498,7 +526,7 @@ window.NG = window.NG || {};
       sl('nana', 'happy', 'Your drummer asked for my autograph, and then for my prawn back.'),
       en('two_stars'),
       lb('quiet_end'), sc('tokyo-night'), mu('sad'),
-      na('Four years. I want you to know it was a very good apartment. She told me she stopped humming in the shower and couldn\'t say which day.'),
+      na('Four years. I want you to know it was a beautiful apartment. She told me she stopped humming in the shower and couldn\'t say which day.'),
       en('plus_one'),
 
       lb('race_to_tokyo'), sc('hometown'), mu('room'),
@@ -514,6 +542,7 @@ window.NG = window.NG || {};
       na('Some Saturdays she looks up at the back door. Yasu takes the long way home on those nights and she doesn\'t thank him.'),
       en('stones'),
       lb('stones_kept'),
+      sr('ren', 'neutral', 'Third on the setlist. Don\'t make it a thing.'),
       sr('ren', 'neutral', 'Trapnest is on the television.'),
       sl('nana', 'sad', 'Do you want me to turn it off?'),
       sr('ren', 'neutral', 'No. It\'s fine. The guitarist isn\'t as good as me.'),
@@ -522,10 +551,13 @@ window.NG = window.NG || {};
 
       lb('later_train'), sc('train-snow'), mu('title'),
       na('They got on together in the snow, the next winter, with one suitcase each and Nobu\'s rice cooker.'),
+      ju('lt_no_plan', { notFlag: 'plan' }),
+      sl('nana', 'neutral', 'Ren sends nothing. I\'ll be annoyed in person.'),
+      lb('lt_no_plan'),
       sr('nobu', 'happy', 'Tokyo! Tokyo! Everyone, it\'s the Tokyo train!'),
       sl('nana', 'neutral', 'Nobu, this carriage has people in it.'),
       na('And across the aisle, a girl with a very large suitcase was crying into a very small sandwich, and looked up, and said:'),
-      sr('hachi', 'sad', 'Sorry, is this seat taken? Sorry. I\'m having a whole thing. Do you want half of this?'),
+      sr('hachi', 'sad', 'Sorry, is this seat free? I\'m sorry, I\'m crying, it\'s a long story. Do you want half of this?'),
       en('second_train')
     ]
   };
@@ -540,7 +572,7 @@ window.NG = window.NG || {};
       street: { title: 'The Ferry Singer', caption: 'A small town heard her on Thursdays. Nobody knew who she was, and for the first time that was the point.' },
       gilded: { title: 'The Next Album', caption: 'It was her best work. Everyone said so. He had the doors serviced that winter.' },
       duet: { title: 'Unbilled', caption: 'Two women, one mic, an unadvertised basement. No recording exists, and four hundred people lie about being there.' },
-      wreck: { title: 'What It Cost', caption: 'Trapnest ended in a lawsuit. She won her name back and had no one left to tell.' }
+      wreck: { title: 'What It Cost', caption: 'Trapnest ended in a lawsuit. She won her name back and had nothing left to sing.' }
     },
     steps: [
       sc('studio'), mu('tension'),
@@ -549,7 +581,7 @@ window.NG = window.NG || {};
       sl('reira', 'neutral', 'I wasn\'t flat.'),
       sr('takumi', 'neutral', 'You were sad, which is the same note to an audience. Again.'),
       sr('naoki', 'happy', 'I thought it was nice! Is anyone having the rest of that sandwich? Hello?'),
-      na('She had sung that bridge sixty-two times. She put down the headphones, very gently, the way you put down something asleep.'),
+      na('She had sung that bridge sixty-two times. She put down the headphones the way you put down something asleep.'),
       sl('reira', 'smirk', 'I am going outside.'),
       sr('takumi', 'neutral', 'There is no outside on the schedule.'),
       na('And Reira, who hadn\'t gone anywhere alone since she was sixteen, walked out of the door and discovered it was raining.'),
@@ -559,7 +591,7 @@ window.NG = window.NG || {};
       sr('shin', 'neutral', 'Okay. Sit down, big sister. I\'ll get you an umbrella. You\'re worrying the convenience store.'),
       ch('She needs somewhere to go. Who does Shin call?', [
         { label: 'Call Yasu. He\'s known her longest.', flag: 'yasu_called', rel: { yasu: 2 }, remember: 'Yasu came. He always does. That\'s the problem.', reply: [
-          sr('yasu', 'neutral', 'Reira. Have you eaten? I see. Let\'s improve on that.'),
+          sr('yasu', 'neutral', 'Reira. Get in. There\'s soup in the van. Don\'t ask why there\'s soup in the van.'),
           sl('reira', 'sad', 'You came so fast. You should stop doing that. It makes it hard for me.') ] },
         { label: 'Call nobody. Put her on the night bus with your pocket money.', flag: 'bus', rel: { shin: 2 }, remember: 'Shin gave her everything in his wallet.', reply: [
           sr('shin', 'neutral', 'It goes to the sea. I went once. It\'s very boring. You\'ll like it.'),
@@ -567,14 +599,16 @@ window.NG = window.NG || {};
         { label: 'Take her to Room 707. Nana is awake.', flag: 'to_nana', rel: { nana: 2 }, remember: 'Nana doesn\'t usually open that door.', reply: [
           sr('nana', 'neutral', 'You\'re the enemy.'),
           sl('reira', 'sad', 'Yes. I\'m also quite wet.'),
-          sr('nana', 'smirk', '...Towels are on the left. Don\'t touch the good glasses.') ] }
+          sr('nana', 'smirk', '...Towels are on the left. Don\'t touch the good glasses.'),
+          sl('reira', 'sad', 'He says I\'m flat when I\'m sad.'),
+          sr('nana', 'neutral', 'Same note. Sing it sad, then.') ] }
       ]),
       sc('penthouse'), mu('tension'),
       na('He found her in thirty-one hours, which he considered slow.'),
       sr('takumi', 'neutral', 'You are under contract for two more albums and a tour. Forty people get paid when you sing.'),
       sl('reira', 'sad', 'And when I don\'t?'),
       sr('takumi', 'neutral', 'Then I tell them why. The papers as well. Your nerves, your mother, and whose name is on every song you have sung.'),
-      na('He said it the way you mention rain. He had never once needed to raise his voice to her. It would have been a kind of respect.'),
+      na('He had never once needed to raise his voice to her. He didn\'t start now.'),
       ch('He has laid it all out, and every word of it\'s true.', [
         { label: 'Refuse. Let him publish whatever he has.', flag: 'defied', rel: { takumi: -2 }, remember: 'Takumi doesn\'t forget a refusal.', reply: [
           sl('reira', 'smirk', 'Then print it. It\'s my life. I\'d be interested to read about it.') ], next: 'war' },
@@ -583,11 +617,11 @@ window.NG = window.NG || {};
           sr('takumi', 'smirk', 'I can work with that.'),
           na('He said it so kindly. Reira told me that was when she knew.') ], next: 'gilded_path' },
         { label: '[Say nothing]', silent: true, flag: 'silent', reply: [
-          na('She looked out of his very clean window. He took her silence for an answer, because that was how it had always worked.') ], next: 'gilded_path' }
+          na('She looked out of his spotless window. He took her silence for an answer, because that was how it had always worked.') ], next: 'gilded_path' }
       ], 9),
 
       lb('war'), sc('newsstand'), mu('tension'),
-      na('It was every cover by the weekend. They used a very unkind photograph. Takumi had chosen it himself, and had an excellent eye.'),
+      na('It was every cover by the weekend. They used an unkind photograph. Takumi had chosen it himself, and had an excellent eye.'),
       sr('yasu', 'sad', 'I can have an injunction by Tuesday. It wouldn\'t stop it. I\'ll do it anyway.'),
       ju('war_no_yasu', { notFlag: 'yasu_called' }),
       sl('reira', 'sad', 'You came so fast again. You really should stop. I keep letting you.'),
@@ -599,6 +633,9 @@ window.NG = window.NG || {};
           sl('reira', 'happy', 'He can keep Reira. She was very expensive to run.') ], next: 'after_war' }
       ]),
       lb('after_war'),
+      ju('no_addr', { notFlag: 'to_nana' }),
+      na('A Koenji address came in Misato\'s handwriting, with a strawberry drawn on it. Nobody asked how Misato knew.'),
+      lb('no_addr'),
       ju('basement', { flag: 'to_nana' }),
       ju('ferry'),
 
@@ -606,8 +643,8 @@ window.NG = window.NG || {};
       na('The album took fourteen months. Then there was another clause. There\'s always one more, if somebody has written the document carefully.'),
       ju('gilded_end', { notFlag: 'to_nana' }),
       sr('nana', 'neutral', 'There\'s a basement in Koenji. No posters. Thursday. Come or don\'t, I\'m not your mother.'),
-      ch('A note, passed along by a very nervous Misato. Takumi is three rooms away.', [
-        { label: 'Go. Take the back stairs. In the wrong shoes.', flag: 'escaped', reply: [ na('It was the bravest thing she ever did, and she did it in slippers, which I\'m told runs in the family.') ] , next: 'stairs' },
+      ch('A note, passed along by Misato, who can\'t stop shaking. Takumi is three rooms away.', [
+        { label: 'Go. Take the back stairs. In the wrong shoes.', flag: 'escaped', reply: [ na('It was the bravest thing she ever did, and she did it in her socks, which I\'m told runs in the family.') ] , next: 'stairs' },
         { label: 'Burn the note. Too many people get paid.', reply: [ na('She kept it folded in a lipstick case, and she never burned it, and she never went.') ], next: 'gilded_end' }
       ]),
       lb('stairs'),
@@ -629,13 +666,16 @@ window.NG = window.NG || {};
       na('A harbour town. A diner where she gets the orders wrong and is forgiven. On Thursdays she sings to the ferry passengers, for coins.'),
       ju('ferry_no_bus', { notFlag: 'bus' }),
       na('It was the town at the end of that night bus. It was exactly as boring as he\'d promised, and she\'d never been so happy in her life.'),
+      ju('ferry_join'),
       lb('ferry_no_bus'),
+      na('She picked the town off a map with her eyes shut. It was the first thing she had ever chosen by accident.'),
+      lb('ferry_join'),
       sr('shin', 'happy', 'I took the bus. It\'s still boring. You look terrible. Good. You look like you live here. I passed my exam.'),
       sl('reira', 'happy', 'Tell me everything. Slowly. I\'ve got nowhere to be.'),
       en('street'),
 
       lb('wreck_end'), sc('newsstand'), mu('sad'),
-      na('She won. The ruling was very clear. She read it alone in a lawyer\'s waiting room, and then there was nothing to do next.'),
+      na('She won. The ruling couldn\'t have been clearer. She read it alone in a lawyer\'s waiting room, and then there was nothing to do next.'),
       sr('yasu', 'sad', 'Have you eaten?'),
       sl('reira', 'sad', 'Please stop being so kind. I have just spent everything.'),
       en('wreck')
@@ -665,7 +705,7 @@ window.NG = window.NG || {};
       na('Then the van was empty. It was four in the morning, in a car park, and nobody needed him for about eleven minutes.'),
       na('He took off the sunglasses. He doesn\'t know why. He looked at himself in the rear-view mirror and found a man he hadn\'t been briefed on.'),
       sl('yasu', 'sad', 'All right. What do you want.'),
-      na('It was very quiet. He tried again, the way you\'d with a witness.'),
+      na('The engine ticked as it cooled. He tried again, the way you\'d with a witness.'),
       ch('For the first time, Yasu asks himself what he wants. What comes up first?', [
         { label: 'Nana. It has always been Nana.', flag: 'want_nana', rel: { nana: 1 }, reply: [ na('Well. He had suspected. He had filed it some years ago under matters not to be raised.') ] },
         { label: 'Someone who would notice if he stopped.', flag: 'want_seen', reply: [ na('That one embarrassed him so much that he put the sunglasses back on for a minute.') ] },
@@ -675,10 +715,10 @@ window.NG = window.NG || {};
       sr('hachi', 'shock', 'Yasu? Your eyes! You\'ve got eyes! There are two of them! Why has nobody told me?'),
       sl('yasu', 'smirk', 'It is not widely known. I would appreciate your discretion.'),
       sr('hachi', 'happy', 'You look about nineteen! You look like a very tired baby! Are you all right? Sit down, I\'ll make you something.'),
-      na('Nobody had asked him that since he was a boy. He sat down. It was a very small chair. He found he couldn\'t speak for a moment.'),
+      na('Nobody had asked him that since he was a boy. He sat down. The chair was too small for him. He found he couldn\'t speak for a moment.'),
       ch('Hachi is holding out a bowl. She\'s the only one who has ever asked.', [
-        { label: 'Tell her. All of it, even the bit you filed.', flag: 'told_hachi', rel: { hachi: 2 }, remember: 'Hachi is very bad at keeping secrets. She\'ll try.', reply: [
-          sl('yasu', 'neutral', 'I think I\'ve spent ten years being useful so that no one would ask me this.'),
+        { label: 'Tell her. All of it, even the bit you filed.', flag: 'told_hachi', rel: { hachi: 2 }, remember: 'Hachi is terrible at keeping secrets. She\'ll try.', reply: [
+          sl('yasu', 'neutral', 'I\'ve spent ten years being useful so that nobody would ask me this.'),
           sr('hachi', 'sad', 'Oh, Yasu. That\'s the saddest thing I ever heard and I once watched a dog wait for a bus.') ] },
         { label: 'Ask if she\'s eaten. Change the subject, gently.', flag: 'deflected', rel: { hachi: -1 }, reply: [
           sr('hachi', 'angry', 'That\'s what you always say! I\'m holding the bowl! I\'m obviously the one with the bowl!') ] }
@@ -687,7 +727,7 @@ window.NG = window.NG || {};
       na('Reira came by the studio. She always seemed to know, the way water knows where the crack is.'),
       sr('reira', 'smirk', 'You have your glasses in your hand. Should I be afraid?'),
       sl('yasu', 'neutral', 'I don\'t know yet.'),
-      sr('reira', 'sad', 'I could ask you to take me away. You would do it, would you not? You would look it up and do it properly.'),
+      sr('reira', 'sad', 'I could ask you to take me away. You\'d do it, wouldn\'t you? You\'d look it up and do it properly.'),
       ch('She means it, or she might. You\'ve spent your life answering this phone.', [
         { label: 'Tell her no. Kindly. Finally.', flag: 'no_reira', rel: { reira: -1 }, remember: 'Reira had never heard you say that word.', reply: [
           sl('yasu', 'sad', 'No, Reira. I am very sorry. I have run out of being that.'),
@@ -712,23 +752,27 @@ window.NG = window.NG || {};
       en('told_her'),
 
       lb('miu_scene'), sc('live-house'), mu('room'),
-      na('Miu, the actress from the agency dormitory, had been watching him carry things for a year. She had a very direct way of standing in front of a person.'),
+      na('Miu, the actress from the agency dormitory, had been watching him carry things for a year. She had a direct way of standing in front of a person.'),
       sr('nobu', 'happy', 'She asked me what you like! I said drums and being sad in cars! Was that wrong?'),
       sl('yasu', 'neutral', 'Nobu, what did she say?'),
       sr('nobu', 'smirk', 'She said that\'s not a list. She said she\'s going to find out, and that you should clear your Tuesdays.'),
+      na('Then she was simply there, in front of him. "Pears or plums? Don\'t think. Say one." He said pears. He had not known that.'),
       ch('You have no idea what you like on a Tuesday.', [
         { label: 'Clear your Tuesdays. Let somebody ask.', rel: { hachi: 1 }, reply: [
           sl('yasu', 'smirk', 'I looked into it. I appear to have one free Tuesday, in the year after next. I will move some things.') ], next: 'miu_end' },
-        { label: 'Thank her and get back to work. There\'s a tour.', reply: [ na('He left a very polite note. She wrote back one word, and it wasn\'t polite, and he kept it.') ], next: 'shades_end' }
+        { label: 'Thank her and get back to work. There\'s a tour.', reply: [ na('He left a polite note. She wrote back one word, and it wasn\'t polite, and he kept it.') ], next: 'shades_end' }
       ]),
       lb('miu_end'), sc('tokyo-night'), mu('room'),
       na('It turned out that he likes pears, jazz nobody else can stand, and being driven. He had never once been driven.'),
+      na('"Plums next week," she said. "Don\'t argue."'),
       en('miu'),
 
       lb('law_scene'), sc('tokyo-night'), mu('room'),
       na('The old firm was still there. He finished the training he\'d walked out of, at a desk beside boys ten years younger who called him sir.'),
       sr('shin', 'neutral', 'You look stupid in a tie. Who\'s going to carry the amps?'),
-      sl('yasu', 'neutral', 'You are, Shin. You\'re growing. Sit down. I want to talk about your guardianship papers.'),
+      sl('yasu', 'neutral', 'You are, Shin. You\'re growing.'),
+      sr('shin', 'neutral', 'Why\'d you quit, anyway?'),
+      sl('yasu', 'neutral', 'A girl sang in a bar. Sit down. I want to talk about your guardianship papers.'),
       sr('shin', 'shock', 'My what?'),
       sl('yasu', 'neutral', 'A kid your age should have somebody on a form. I filed it. You can tear it up. Your name is spelled right, at least.'),
       ch('He\'s gone completely still. He has never had a form.', [
@@ -743,6 +787,9 @@ window.NG = window.NG || {};
       en('law'),
 
       lb('shades_end'), sc('road-van'), mu('sad'),
+      ju('shades_plain', { notFlag: 'yes_reira' }),
+      na('He drove her to the airport. She didn\'t look back. She has never had to.'),
+      lb('shades_plain'),
       na('He put them back on at the first red light. By morning the van was clean, and the phone was ringing, and he answered it.'),
       en('shades')
     ]
@@ -764,7 +811,7 @@ window.NG = window.NG || {};
       sc('room-707'), mu('sad'),
       le('Hey, Nana. This is the last one. I\'ve written you a letter every seventh of July for ten years, and I never had anywhere to send them. I\'m going to tell you how I found you. In my head, I always find you.'),
       na('Every seventh of July we still come up the stairs. Seven, oh-seven, and the one night those two stars are allowed to meet. It was Nobu\'s idea. Nobu brings too much food. Yasu checks the lease. Shin, who\'s on billboards now, takes out the rubbish.'),
-      na('There are two glasses on the windowsill. I wash them both, every week. I want that on the record.'),
+      na('There are two glasses on the windowsill. I wash them both, every week. Don\'t say anything.'),
       sr('shin', 'neutral', 'You\'re doing the thing again, Hachi. With the cloth.'),
       sl('hachi', 'happy', 'It\'s a very dusty glass, thank you.'),
       na('Then Yasu put something on the table. He put it down the way he puts down bad news and good news, which is the same way.'),
@@ -784,7 +831,7 @@ window.NG = window.NG || {};
           sl('hachi', 'sad', 'They\'re for me, Yasu. I think I wrote them for me. I just want to see if she\'s eating.') ] }
       ]),
       sc('hometown'), mu('tension'),
-      na('It rained the way it rains in that country, with no enthusiasm. I walked around for two days, showing a photograph to people who were very polite about it.'),
+      na('It rained the way it rains in that country, with no enthusiasm. I walked around for two days, showing a photograph to people who were polite about it.'),
       na('Then, on Thursday, I went past a pub with its door propped open. Someone inside was singing behind the noise of the dishes.'),
       na('It wasn\'t a performance. She was just singing while she stacked things, under her breath, a little flat from all the years of cigarettes.'),
       na('I had a whole speech. I had been working on it for ten years. It had three parts. I stood in the rain and I couldn\'t remember what any of them were.'),
@@ -799,10 +846,10 @@ window.NG = window.NG || {};
           sr('nana', 'sad', '...You\'ve got old, Hachi.') ] },
         { label: '"Why? Ten years, Nana. WHY?"', flag: 'why', rel: { nana: -2 }, remember: 'You\'ve been holding that for a long time.', reply: [
           sl('hachi', 'angry', 'Ten years! I wrote to you! I washed your glass! Why would you do that to us? Why did you do that to ME?'),
-          na('The pub went quiet in that very English way, where everyone keeps drinking but stops chewing.'),
+          na('The pub went quiet in the English way, where everyone keeps drinking but stops chewing.'),
           sr('nana', 'angry', 'Not here.') ] },
         { label: '[Say nothing]', silent: true, flag: 'stood', rel: { nana: 1 }, reply: [
-          na('Nothing. I stood there with rain coming off my nose, and I cried, in front of a man eating a pie. Nana looked at me for a very long time.'),
+          na('Nothing. I stood there with rain coming off my nose, and I cried, in front of a man eating a pie. Nana finished drying the glass. Then she dried the next one.'),
           sr('nana', 'sad', 'You\'re dripping on my floor, you stupid dog.') ] }
       ], 10),
       na('She took me out the back, where the bins are, and lit a cigarette. Her hands were the same. I don\'t know why that was what undid me.'),
@@ -834,7 +881,7 @@ window.NG = window.NG || {};
       sr('hachi', 'shock', 'Satsuki! I said to stay!'),
       sl('nana', 'neutral', 'Who\'s the short one?'),
       sr('hachi', 'sad', 'That\'s my daughter. She\'s read all of your letters. The ones that I never sent. I\'m so sorry.'),
-      na('Satsuki walked straight up to the most frightening woman I have ever loved, and looked at her very seriously.'),
+      na('Satsuki walked straight up to the most frightening woman I have ever loved, and looked up at her, all business.'),
       sl('nana', 'smirk', 'Well? What do you want, kid?'),
       na('And my daughter said that her mother cries every July, and that she\'d like to know if that was going to be fixed.'),
       sr('nana', 'shock', '...'),
@@ -854,12 +901,13 @@ window.NG = window.NG || {};
       na('I took it out of my bag. I took off one sock, and then the other sock. It took a very long time and neither of us could look away.'),
       sr('nana', 'shock', 'You brought a glass to England.'),
       sl('hachi', 'sad', 'It\'s been washed every week. The chip is still there. I didn\'t want you to think anyone had replaced it.'),
-      sr('nana', 'sad', 'You idiot. You absolute... Do you know what a stupid thing that\'s to carry on a plane?'),
+      sr('nana', 'sad', 'You idiot. You absolute... Do you know how stupid that is to carry on a plane?'),
       na('She took it and held it in both hands. It was so small in them. I had forgotten how small it was.'),
       ju('turn'),
 
       lb('turn'), sc('platform'), mu('tension'),
       na('The next morning, I went round to the pub and the shutter was down. The man with the pie said that she had asked for her wages.'),
+      na('Yasu, from Tokyo, at an hour that was terrible for one of us:'),
       sr('yasu', 'sad', 'Hachi, listen to me. If she\'s run, it\'s not because of anything you did. It\'s what she does when it gets close.'),
       sl('hachi', 'angry', 'I KNOW what she does, Yasu! I\'ve been waiting for ten years at the place she did it!'),
       na('There\'s one little train out of that town. It goes along the sea. It leaves at nine.'),
@@ -871,6 +919,7 @@ window.NG = window.NG || {};
       ju('platform_talk', { rel: { nana: 4 } }),
       na('I sat down on a bench and took out my notebook. I had come all this way. I wrote it all down, and left it with the man with the pie.'),
       ju('letters_end', { flag: 'named_ren' }),
+      na('On the plane I decided what I\'d tell them. That I\'d seen a very good singer in England. That she was eating.'),
       en('goodbye'),
 
       lb('platform_talk'), mu('sad'),
@@ -879,7 +928,7 @@ window.NG = window.NG || {};
       sl('hachi', 'sad', 'You\'re not on the train.'),
       sr('nana', 'sad', 'I am aware.'),
       sr('nana', 'sad', 'I couldn\'t sing, Hachi. After. I opened my mouth and it was him. So I went somewhere nobody would ask me to.'),
-      sr('nana', 'sad', 'If I had gone back, everyone would have been so kind. I couldn\'t have survived how kind you\'d all have been.'),
+      sr('nana', 'sad', 'If I\'d gone back, everyone would\'ve been so kind. I couldn\'t have stood it. You\'d all have been so kind.'),
       ch('This is the moment you\'ve rehearsed for ten years. What do you ask for?', [
         { label: 'Ask her to come home. Say it. Beg, if you have to.', flag: 'begged', rel: { nana: 1 }, reply: [
           sl('hachi', 'sad', 'Come home. I don\'t care if you\'re horrible. Please be horrible at me. In person. There\'s a room.') ], next: 'ask_home' },
@@ -899,9 +948,13 @@ window.NG = window.NG || {};
       sr('nana', 'smirk', 'Then somebody had better go and tell it I\'m coming. You\'re carrying this bag.'),
       ju('home_end'),
       lb('ask_low'),
+      ju('home_kid', { flag: 'satsuki' }),
       ju('home_glass', { flag: 'glass' }),
       sr('nana', 'sad', 'I can\'t, Hachi. Ask me again next year. Maybe you\'ll have got better at it.'),
       ju('letters_end'),
+      lb('home_kid'),
+      sr('nana', 'sad', 'The kid asked if it was going to be fixed. ...Fine. You\'re carrying the bag.'),
+      ju('home_end'),
       lb('home_glass'),
       sr('nana', 'sad', 'Is there anywhere in that terrible flat to put a glass?'),
       sl('hachi', 'happy', 'There\'s exactly one place.'),
@@ -937,7 +990,7 @@ window.NG = window.NG || {};
       en('letters'),
 
       lb('home_end'), sc('room-707'), mu('title'),
-      na('She came up the stairs in July, complaining about the stairs. Nobu dropped an entire tray of something. Shin came in from the kitchen and left again, very fast.'),
+      na('She came up the stairs in July, complaining about the stairs. Nobu dropped an entire tray of something. Shin came in from the kitchen and left again at a run.'),
       sr('yasu', 'neutral', 'You\'re late.'),
       sl('nana', 'smirk', 'I got held up.'),
       sl('nana', 'neutral', 'I\'m home.'),

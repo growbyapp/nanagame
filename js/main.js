@@ -129,6 +129,12 @@ window.NG = window.NG || {};
   function icon(name) { return art('icon', name); }
   function sceneHtml(id) { return id ? art('scene', id) : ''; }
 
+  // Staging (js/stage.js) is decoration: if it is missing or throws, the story carries on without it.
+  function stage(fn) {
+    if (!NG.Stage || !NG.Stage[fn]) return undefined;
+    try { return NG.Stage[fn].apply(NG.Stage, [].slice.call(arguments, 1)); } catch (e) { console.warn('stage', fn, e); return undefined; }
+  }
+
   function el(tag, cls, html) {
     var n = document.createElement(tag);
     if (cls) n.className = cls;
@@ -270,7 +276,7 @@ window.NG = window.NG || {};
     state = freshState();
     NG.state = state;
     frames = [];
-    if (vn) vn.classList.remove('whatif');
+    if (vn) { vn.classList.remove('whatif'); stage('reset'); }
     openChapter(0);
   }
 
@@ -348,7 +354,8 @@ window.NG = window.NG || {};
     persist();
     var f = frames[frames.length - 1];
     var s = f.steps[f.i++];
-    var h = HANDLERS[s.type];
+    // Unknown or malformed steps are skipped, so newer scripts never strand an older engine.
+    var h = s && HANDLERS[s.type];
     if (h) h(s); else step();
   }
 
@@ -392,8 +399,8 @@ window.NG = window.NG || {};
       return '<div class="stat" data-stat="' + k + '" title="' + STATS[k] + '">' + icon(STAT_ICONS[k]) + '<span class="stat-label">' + STATS[k] + '</span><b>0</b></div>';
     }).join('');
     vn.innerHTML =
-      '<div class="vn-bg"></div>' +
-      '<div class="vn-portraits"><div class="portrait left"></div><div class="portrait right"></div></div>' +
+      '<div class="vn-cam"><div class="vn-shake"><div class="vn-bg"></div>' +
+      '<div class="vn-portraits"><div class="portrait left"></div><div class="portrait right"></div></div></div></div>' +
       '<div class="vn-hud">' + stats + '</div>' +
       '<div class="vn-tools"><button type="button" class="vn-tool" data-act="skip">Skip</button><button type="button" class="vn-tool" data-act="menu">Menu</button></div>' +
       '<div class="vn-box"><div class="vn-name"></div><div class="vn-text"></div><div class="vn-next">&#9660;</div></div>' +
@@ -415,10 +422,11 @@ window.NG = window.NG || {};
       if (e.target.closest('.vn-choices, .letter-wrap, .polaroid-pop, .keepsake-pop, .memory')) return;
       vnAdvance();
     });
+    stage('attach', vn, { skipping: function () { return skipping; }, sfx: sfx });
     updateHUD();
   }
 
-  function showVN() { mount(vn); updateHUD(); }
+  function showVN() { mount(vn); updateHUD(); stage('mounted'); }
 
   function updateHUD() {
     if (!vn || !state) return;
@@ -432,12 +440,14 @@ window.NG = window.NG || {};
     skipping = !skipping;
     var t = vn.querySelector('[data-act="skip"]');
     if (t) t.classList.toggle('on', skipping);
+    if (skipping) stage('fastForward'); else stage('sync');
     if (skipping) vnAdvance();
   }
   function stopSkip() {
     skipping = false;
     var t = vn && vn.querySelector('[data-act="skip"]');
     if (t) t.classList.remove('on');
+    stage('sync');
   }
 
   function vnAdvance() {
@@ -477,13 +487,19 @@ window.NG = window.NG || {};
   }
 
   function setScene(id) {
+    // The transition follows the mood: a music step just before the scene wins over the place's own mood.
+    var mood = musicLock ? state.music : SCENE_MOOD[id];
     state.scene = id;
-    vn.querySelector('.vn-bg').innerHTML = sceneHtml(id);
-    clearPortraits();
+    var html = sceneHtml(id);
+    if (stage('changeScene', id, html, mood) !== true) {
+      vn.querySelector('.vn-bg').innerHTML = html;
+      clearPortraits();
+    }
     if (musicLock) musicLock = false;
     else if (SCENE_MOOD[id]) playMusic(SCENE_MOOD[id]);
   }
   function clearPortraits() {
+    if (stage('clearCast') === true) return;
     vn.querySelectorAll('.portrait').forEach(function (p) {
       p.innerHTML = '';
       p.classList.remove('active');
@@ -491,7 +507,8 @@ window.NG = window.NG || {};
     });
   }
 
-  function showLine(name, text) {
+  function showLine(name, text, after) {
+    stage('onLine');
     var box = vn.querySelector('.vn-box');
     box.classList.remove('hidden');
     box.classList.toggle('narration', !name);
@@ -501,17 +518,19 @@ window.NG = window.NG || {};
     vn.querySelector('.vn-choices').innerHTML = '';
     stopTyping();
     var done = function () {
-      waiting = step;
+      waiting = after || step;
       if (skipping) setTimeout(vnAdvance, 40);
     };
     if (skipping) { textEl.textContent = text; done(); return; }
     var i = 0;
     textEl.textContent = '';
+    // The tick starts with the first letter so the sound never trails the text.
+    sfx('type');
     var t = {
       timer: setInterval(function () {
         i++;
         textEl.textContent = text.slice(0, i);
-        if (i % 4 === 0) sfx('type');
+        if (i % 3 === 0 && text.charAt(i - 1) !== ' ') sfx('type');
         if (i >= text.length) t.finish();
       }, 24),
       finish: function () {
@@ -524,6 +543,23 @@ window.NG = window.NG || {};
     typing = t;
   }
 
+  // A pause the player can tap through. The timer only fires if nothing else took over in the meantime.
+  // A tap in the first moments is ignored, so a double tap on the previous line cannot swallow the beat.
+  function hold(ms, next) {
+    if (skipping || !(ms > 0)) { next(); return; }
+    var done = false, t0 = Date.now();
+    var go = function (fromTimer) {
+      if (done) return;
+      if (fromTimer !== true && !skipping && Date.now() - t0 < Math.min(350, ms)) { waiting = go; return; }
+      done = true;
+      next();
+    };
+    waiting = go;
+    setTimeout(function () { if (waiting === go) { waiting = null; go(true); } }, ms);
+  }
+
+  var ACT_MOVES = ['enter-left', 'enter-right', 'exit', 'jump', 'shake', 'lean-in', 'turn-away', 'nod', 'sob', 'laugh', 'collapse', 'hug', 'reset'];
+
   var HANDLERS = {
     scene: function (s) { setScene(s.id); step(); },
     music: function (s) { playMusic(s.id); musicLock = true; step(); },
@@ -534,20 +570,22 @@ window.NG = window.NG || {};
       step();
     },
     narrate: function (s) {
-      vn.querySelectorAll('.portrait').forEach(function (p) { p.classList.remove('active'); });
+      if (stage('narrate') !== true) vn.querySelectorAll('.portrait').forEach(function (p) { p.classList.remove('active'); });
       showLine('', s.text);
     },
     say: function (s) {
       var side = s.side || (s.who === 'hachi' ? 'left' : 'right');
-      var other = side === 'left' ? 'right' : 'left';
-      var p = vn.querySelector('.portrait.' + side);
-      var key = s.who + ':' + (s.expr || 'neutral');
-      if (p.dataset.key !== key) {
-        p.innerHTML = portrait(s.who, s.expr);
-        p.dataset.key = key;
+      if (stage('say', side, s.who, s.expr || 'neutral') !== true) {
+        var other = side === 'left' ? 'right' : 'left';
+        var p = vn.querySelector('.portrait.' + side);
+        var key = s.who + ':' + (s.expr || 'neutral');
+        if (p.dataset.key !== key) {
+          p.innerHTML = portrait(s.who, s.expr);
+          p.dataset.key = key;
+        }
+        p.classList.add('active');
+        vn.querySelector('.portrait.' + other).classList.remove('active');
       }
-      p.classList.add('active');
-      vn.querySelector('.portrait.' + other).classList.remove('active');
       showLine(NAMES[s.who] || s.who, s.text);
     },
     letter: function (s) {
@@ -563,6 +601,7 @@ window.NG = window.NG || {};
       sfx('page');
       audio('voice', LETTER_VOICE[Math.floor(Math.random() * LETTER_VOICE.length)]);
       vn.appendChild(wrap);
+      stage('flourish', 'letter', wrap);
     },
     choice: function (s) {
       stopSkip();
@@ -634,6 +673,7 @@ window.NG = window.NG || {};
       pop.innerHTML = '<div class="keepsake-card"><div class="keepsake-tag">Keepsake found</div><div class="keepsake-art">' + icon(k.icon) + '</div><h3>' + esc(k.title) + '</h3><p>' + esc(k.caption) + '</p></div>';
       pop.querySelector('.keepsake-card').appendChild(btn('Put it on the shelf', 'primary', function () { pop.remove(); step(); }));
       vn.appendChild(pop);
+      stage('flourish', 'keepsake', pop);
     },
     polaroid: function (s) {
       var p = NG.Story.polaroids[s.id];
@@ -646,6 +686,26 @@ window.NG = window.NG || {};
       pop.appendChild(polaroidCard(s.id, p));
       pop.appendChild(btn('Tape it in the scrapbook', 'primary', function () { pop.remove(); step(); }));
       vn.appendChild(pop);
+      stage('flourish', 'polaroid', pop);
+    },
+    // Explicit staging. None of these wait for a tap except a prop with a caption, which reads like a line.
+    act: function (s) {
+      var move = String(s.move || '').toLowerCase();
+      if (s.who && ACT_MOVES.indexOf(move) !== -1) stage('act', s.who, move, { expr: s.expr, side: s.side });
+      step();
+    },
+    prop: function (s) {
+      if (stage('prop', s.id, s.caption) !== true) { step(); return; }
+      if (s.caption) showLine('', String(s.caption), function () { stage('dockProp'); step(); });
+      else hold(s.ms || 1400, function () { stage('dockProp'); step(); });
+    },
+    fx: function (s) {
+      var ms = stage('fx', String(s.id || '').toLowerCase());
+      if (ms > 0) hold(ms, step); else step();
+    },
+    wait: function (s) {
+      var ms = Math.min(5000, Math.max(0, Number(s.ms) || 600));
+      hold(ms, step);
     },
     ending: function () {
       var ending = NG.Story.endings.find(function (e) { return test(e.when); }) || NG.Story.endings[NG.Story.endings.length - 1];
@@ -800,6 +860,7 @@ window.NG = window.NG || {};
     stopSkip();
     if (!vn) buildVN();
     vn.classList.add('whatif');
+    stage('reset');
     vn.querySelector('.vn-text').textContent = '';
     vn.querySelector('.vn-name').textContent = '';
     vn.querySelector('.vn-choices').innerHTML = '';
