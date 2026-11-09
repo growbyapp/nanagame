@@ -343,3 +343,16 @@
   .mg-paper-photo { height: 56px; }
 }
 .mg-want:empty { display: none; }
+
+/* Crowd Surf: fan requests and BLAST */
+.mg-cs-req { position: absolute; top: 8px; left: 8px; z-index: 3; max-width: calc(100% - 120px); padding: 5px 9px; font-family: var(--font-letter, monospace); font-size: 13px; line-height: 1.2; color: var(--ink, #0d0b0c); background: var(--paper, #f3ece0); border: 2px solid var(--ink, #0d0b0c); box-shadow: 3px 3px 0 var(--pink, #ff6fa3); transform: rotate(-1deg); pointer-events: none; }
+.mg-cs-req:empty { display: none; }
+.mg-cs-req small { display: block; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--strawberry, #e8294f); }
+.mg-cs-req b { color: var(--strawberry, #e8294f); }
+.mg-cs-blast { position: absolute; right: calc(env(safe-area-inset-right, 0px) + 10px); bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); z-index: 3; width: 72px; height: 72px; padding: 0; overflow: hidden; border-radius: 50%; border: 3px solid var(--paper, #f3ece0); background: rgba(13,11,12,.8); color: var(--paper, #f3ece0); font-family: var(--font-punk, Impact, sans-serif); font-size: 16px; letter-spacing: .04em; touch-action: none; cursor: pointer; }
+.mg-cs-blast i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: var(--strawberry, #e8294f); }
+.mg-cs-blast b { position: relative; font-weight: 400; }
+.mg-cs-blast.ready { border-color: var(--gold, #f4c430); box-shadow: 0 0 0 5px rgba(244,196,48,.35); animation: mg-cs-pulse .8s ease-in-out infinite; }
+@keyframes mg-cs-pulse { 50% { transform: scale(1.09); } }
+@media (min-width: 700px) { .mg-cs-req { font-size: 18px; padding: 8px 12px; max-width: 50%; } .mg-cs-req small { font-size: 12px; } .mg-cs-blast { width: 104px; height: 104px; font-size: 24px; } }
+@media (prefers-reduced-motion: reduce) { .mg-cs-blast.ready { animation: none; } }

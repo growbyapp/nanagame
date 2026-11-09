@@ -1164,7 +1164,7 @@ window.NG = window.NG || {};
      4. CROWD SURF
      ===================================================================== */
   function crowdsurf(ctx) {
-    var cv = ctx.canvas(), g = cv.g, W = 0, H = 0, r = 18, halfW = 60, handsY = 0, bg = null;
+    var cv = ctx.canvas(), g = cv.g, W = 0, H = 0, r = 18, halfW = 60, halfBase = 60, handsY = 0, bg = null;
     var fx = new Fx(), keys = {}, drag = null, imgs = {}, nex = 'happy';
     var cast = ctx.cast(ctx.stage, ['nana', 'hachi'], 'mg-corner'); cast.base(0, 'happy'); cast.base(1, 'happy');
     var CHEER = ['WOOOO NANA!', 'You are FLYING!', 'I am SO loud right now!', 'Higher! HIGHER!', 'Hands up! Hands up!'];
@@ -1173,14 +1173,43 @@ window.NG = window.NG || {};
     var hx = 0, hxT = 0, hvx = 0, dip = 0;
     var ball = { x: 0, y: 0, vx: 0, vy: 0, ang: 0, spin: 0, sq: 0, alive: false, inv: 0 };
     var things = [], warns = [];
-    var lives = 3, score = 0, streak = 0, best = 0, bounces = 0, got = 0, timeLeft = 55, tt = 0, shake = 0, spawnT = 1.2, guardT = 8, respawnT = 0, ended = false, endT = 0, airBonus = false, hitCups = 0, escorted = 0;
+    var lives = 3, score = 0, streak = 0, best = 0, bounces = 0, got = 0, timeLeft = 70, tt = 0, shake = 0, spawnT = 1.2, guardT = 9, respawnT = 0, ended = false, endT = 0, airBonus = false, hitCups = 0, escorted = 0;
+    // Depth: a moving spotlight to steer into, fan requests to complete, and a BLAST ability to earn.
+    var spotX = 0, spotW = 0, hype = 0, blastT = 0, encore = false, perfChain = 0, reqDone = 0, blastFill = -1, blastReady = false;
+    var REQS = shuffle([
+      { k: 'rose', n: 2, s: 'Catch 2 roses' }, { k: 'perfect', n: 3, s: '3 clean centre catches in a row' }, { k: 'lights', n: 1, s: 'Big air: touch the stage lights' },
+      { k: 'spot', n: 3, s: '3 bounces in the spotlight' }, { k: 'loot', n: 4, s: 'Grab 4 things from the crowd' }, { k: 'stay', n: 8, s: 'Stay up for 8 bounces' }
+    ]), reqI = 0, cur = null, reqN = 0;
+    var reqEl = el('div', 'mg-cs-req', ''), blastBtn = el('button', 'mg-cs-blast', '<i></i><b>BLAST</b>');
+    blastBtn.type = 'button'; blastBtn.setAttribute('aria-label', 'Use BLAST');
+    ctx.stage.appendChild(reqEl); ctx.stage.appendChild(blastBtn);
+    function drawReq() { reqEl.innerHTML = cur ? '<small>Fan request</small>' + cur.s + (cur.n > 1 ? ' <b>' + reqN + '/' + cur.n + '</b>' : '') : ''; }
+    function nextReq() { cur = REQS[reqI++ % REQS.length]; reqN = 0; drawReq(); }
+    function progress(k, v) {
+      if (!cur || ended || cur.k !== k) return;
+      reqN = v === undefined ? reqN + 1 : v;
+      if (reqN < cur.n) { drawReq(); return; }
+      reqDone++; var pts = 200 + reqDone * 50; score += pts * mod(); addHype(0.34); sfx('cheer');
+      fx.text(W / 2, H * 0.34, 'REQUEST COMPLETE +' + pts * mod(), C.gold, Math.min(28, W / 13), 1.5);
+      cast.react(1, 'happy', pick(CHEER), 1700); nextReq();
+    }
+    function mod() { return (blastT > 0 ? 2 : 1) * (encore ? 2 : 1); }
+    function addHype(v) { hype = Math.min(1, hype + v); }
+    function fireBlast() {
+      if (hype < 1 || blastT > 0 || !ball.alive || ended || !ctx.playing) return;
+      hype = 0; blastT = 5; halfW = halfBase * 1.35; ball.inv = Math.max(ball.inv, 2.5); sfx('blast'); shake = 10;
+      for (var i = things.length - 1; i >= 0; i--) if (things[i].type === 'cup' || things[i].type === 'guard') { fx.burst(things[i].x, things[i].y, 10, [C.pink, C.gold], { min: 60, max: 220, g: 300, shape: 'star' }); things.splice(i, 1); }
+      warns.length = 0; fx.text(W / 2, H * 0.3, 'BLAST! THE ROOM IS YOURS', C.pink, Math.min(32, W / 12), 1.6); mood(0, 'smirk', 'Get out of my way.', 2200);
+    }
+    function endBlast() { blastT = 0; halfW = halfBase; }
+    ctx.on(blastBtn, 'pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); fireBlast(); });
     var STREAK_CALL = { 3: 'WHEEE!', 5: 'x2 CROWD LOVES YOU', 10: 'x3 NANA IS A COMET', 15: 'x4 STAGE-DIVE LEGEND', 20: 'x5 GRAVITY FILED A COMPLAINT', 30: 'THE ROOF IS A SUGGESTION' };
     var CUP_SAY = ['BEER TO THE FACE', 'COLD ONE, NANA!', 'HAIR: DAMP', 'THAT WAS A GOOD JACKET', 'REFRESHING (NO)'];
     var DROP_SAY = ['DROPPED! The crowd gasps', 'FLOOR: 1, NANA: 0', 'Somebody had a phone out', 'THUD (artistic)'];
 
     function mult() { return Math.min(5, 1 + Math.floor(streak / 5)); }
     function layout() {
-      W = cv.W; H = cv.H; r = clamp(W * 0.04, 14, 22); halfW = clamp(W * 0.11, 50, 90); handsY = H - 58;
+      W = cv.W; H = cv.H; r = clamp(W * 0.04, 14, 22); halfBase = clamp(W * 0.17, 66, 130); halfW = halfBase * (blastT > 0 ? 1.35 : 1); handsY = H - 58; spotW = clamp(W * 0.13, 46, 110);
       if (!hx) { hx = hxT = W / 2; }
       hxT = clamp(hxT, halfW, W - halfW); hx = clamp(hx, halfW, W - halfW);
       bg = document.createElement('canvas'); bg.width = W; bg.height = H; var b = bg.getContext('2d');
@@ -1194,7 +1223,7 @@ window.NG = window.NG || {};
     layout();
 
     function spawnBall(first) {
-      ball.x = W * 0.15; ball.y = H * 0.12; ball.vx = W * 0.22; ball.vy = -H * 0.15; ball.ang = 0; ball.spin = 4; ball.alive = true; ball.inv = first ? 0.6 : 1.4; ball.sq = 0;
+      ball.x = W * 0.15; ball.y = H * 0.12; ball.vx = W * 0.14; ball.vy = -H * 0.12; ball.ang = 0; ball.spin = 4; ball.alive = true; ball.inv = first ? 0.6 : 1.4; ball.sq = 0;
       if (first) fx.text(W * 0.3, H * 0.2, 'STAGE DIVE!', C.pink, 34, 1.5);
     }
     function bump(msg, col) { fx.text(clamp(ball.x, 80, W - 80), clamp(ball.y - 34, 40, H - 120), msg, col || C.paper, 22); }
@@ -1208,19 +1237,28 @@ window.NG = window.NG || {};
     }
     function endGame() { if (ended) return; ended = true; endT = 0; }
     function finishNow() {
-      var stars = score >= 2000 ? 3 : score >= 1100 ? 2 : score >= 400 ? 1 : 0;
+      var stars = score >= 4500 ? 3 : score >= 2500 ? 2 : score >= 800 ? 1 : 0;
       ctx.finish({ title: 'Stage dive report', score: score, stars: stars, effects: { fame: stars },
         html: '<div class="mg-stats"><span>Bounces <b>' + bounces + '</b></span><span>Best streak <b>' + best + '</b></span><span>Loot <b>' + got + '</b></span></div>' });
     }
 
+    function gravity() { return H * (1.25 + Math.min(0.55, streak * 0.018)); }
+
     function bounce(offset) {
       streak++; bounces++; best = Math.max(best, streak); airBonus = false;
-      var G = H * (2.0 + Math.min(1.0, streak * 0.03)), h = H * (0.44 + Math.min(0.34, streak * 0.02));
+      var G = gravity(), h = H * (0.46 + Math.min(0.26, streak * 0.015));
+      var bigAir = Math.abs(offset) < 0.25 && perfChain % 3 === 2;
+      if (bigAir) { h = handsY - H * 0.05; fx.text(W / 2, H * 0.5, 'BIG AIR!', C.pink, Math.min(30, W / 12), 0.9); }
       h = Math.min(h, handsY - 8);
       ball.vy = -Math.sqrt(2 * G * h); ball.y = handsY - r;
-      ball.vx = clamp(ball.vx * 0.35 + offset * W * 0.32 + hvx * 0.22, -W * 0.55, W * 0.55); ball.spin = ball.vx / 55;
+      // A centre catch sends her straight up; only the outer edges of the hands steer her.
+      var edge = Math.abs(offset) < 0.22 ? 0 : (offset < 0 ? -1 : 1) * (Math.abs(offset) - 0.22) / 0.78;
+      ball.vx = clamp(ball.vx * 0.25 + edge * W * 0.24 + hvx * 0.05, -W * 0.34, W * 0.34); ball.spin = ball.vx / 55;
       ball.sq = 0.55; dip = 1; shake = Math.min(7, 2 + streak * 0.2);
-      var perfect = Math.abs(offset) < 0.25, pts = 10 * mult() + (perfect ? 5 : 0); score += pts;
+      var perfect = Math.abs(offset) < 0.25, inSpot = Math.abs(ball.x - spotX) < spotW, pts = (10 * mult() + (perfect ? 5 : 0)) * (inSpot ? 2 : 1) * mod(); score += pts;
+      perfChain = perfect ? perfChain + 1 : 0; progress('perfect', perfChain); progress('stay', streak);
+      if (perfect) addHype(0.06);
+      if (inSpot) { addHype(0.1); progress('spot'); bump('SPOTLIGHT +' + pts, C.gold); }
       sfx(streak % 5 === 0 ? 'cheer' : perfect ? 'perfect' : 'good');
       fx.burst(ball.x, handsY, 8, ['#e4d9c6', '#ff6fa3', '#fff'], { arc: [-3, -0.14], min: 60, max: 220, g: 600, shape: streak > 6 ? 'star' : 'sq' });
       if (STREAK_CALL[streak]) { fx.text(W / 2, H * 0.3, STREAK_CALL[streak], streak >= 10 ? C.gold : C.pink, Math.min(34, W / 11), 1.4); sfx('cheer'); }
@@ -1237,7 +1275,7 @@ window.NG = window.NG || {};
       if (roll < cupP) {
         t = { type: 'cup', x: s < 0 ? -20 : W + 20, y: H * rr(0.55, 0.75), vx: -s * rr(W * 0.18, W * 0.38), vy: -H * rr(0.55, 0.85), g: H * 0.95, rot: 0, vr: rr(-6, 6), sz: 13 };
       } else {
-        var k = Math.random(), type = k < 0.5 ? 'setlist' : k < 0.85 ? 'pick' : 'rose';
+        var k = Math.random(), type = lives < 3 && Math.random() < 0.1 ? 'glass' : k < 0.5 ? 'setlist' : k < 0.8 ? 'pick' : 'rose';
         t = { type: type, x: s < 0 ? -20 : W + 20, y: rr(H * 0.16, H * 0.6), vx: -s * rr(W * 0.14, W * 0.3) * (1 + tt * 0.004), vy: rr(-H * 0.2, H * 0.04), g: H * 0.3, rot: 0, vr: rr(-3, 3), sz: 14 };
       }
       things.push(t);
@@ -1251,6 +1289,7 @@ window.NG = window.NG || {};
       var k = e.key.toLowerCase();
       if (k === 'arrowleft' || k === 'a') { keys.l = true; if (ctx.playing) e.preventDefault(); }
       else if (k === 'arrowright' || k === 'd') { keys.r = true; if (ctx.playing) e.preventDefault(); }
+      else if (k === ' ') { fireBlast(); if (ctx.playing) e.preventDefault(); }
     });
     ctx.on(window, 'keyup', function (e) {
       var k = e.key.toLowerCase();
@@ -1262,7 +1301,7 @@ window.NG = window.NG || {};
       drag = { id: e.pointerId, x0: e.clientX - rc.left, hx0: hxT };
       try { cv.c.setPointerCapture(e.pointerId); } catch (er) { /* ignore */ }
     });
-    ctx.on(cv.c, 'pointermove', function (e) { if (drag && drag.id === e.pointerId) { var rc = cv.c.getBoundingClientRect(); hxT = clamp(drag.hx0 + (e.clientX - rc.left - drag.x0), halfW, W - halfW); } });
+    ctx.on(cv.c, 'pointermove', function (e) { if (drag && drag.id === e.pointerId) { var rc = cv.c.getBoundingClientRect(); hxT = clamp(drag.hx0 + (e.clientX - rc.left - drag.x0) * 0.85, halfW, W - halfW); } });
     function up(e) { if (drag && drag.id === e.pointerId) drag = null; }
     ctx.on(cv.c, 'pointerup', up); ctx.on(cv.c, 'pointercancel', up);
 
@@ -1271,21 +1310,28 @@ window.NG = window.NG || {};
       var i, t;
       // hands
       var dir = (keys.l ? -1 : 0) + (keys.r ? 1 : 0);
-      if (dir) hxT += dir * W * 1.1 * dt;
+      if (dir) hxT += dir * W * 0.8 * dt;
+      if (ctx.settings._auto && ball.alive) { hxT = ball.x; if (hype >= 1) fireBlast(); }
       hxT = clamp(hxT, halfW, W - halfW);
-      var old = hx; hx += (hxT - hx) * Math.min(1, dt * 18); hvx = (hx - old) / Math.max(dt, 0.001);
+      var old = hx; hx += (hxT - hx) * Math.min(1, dt * 11); hvx = (hx - old) / Math.max(dt, 0.001);
       if (!ended) timeLeft -= dt;
+      if (timeLeft <= 15 && !encore && !ended) { encore = true; fx.text(W / 2, H * 0.36, 'ENCORE! DOUBLE POINTS', C.gold, Math.min(32, W / 12), 1.7); sfx('cheer'); }
       if (timeLeft <= 0 && !ended) { fx.text(W / 2, H * 0.4, 'ENCORE OVER!', C.gold, 34, 1.5); endGame(); }
+      spotX = W * (0.5 + 0.34 * Math.sin(tt * 0.62));
+      var pct = Math.round(hype * 100), ready = hype >= 1 && blastT <= 0;
+      if (pct !== blastFill) { blastFill = pct; blastBtn.firstChild.style.height = pct + '%'; }
+      if (ready !== blastReady) { blastReady = ready; blastBtn.className = 'mg-cs-blast' + (ready ? ' ready' : ''); }
+      if (blastT > 0) { blastT -= dt; if (blastT <= 0) endBlast(); dt *= 0.62; }
       if (ended) { endT += dt; if (endT > 1.3 && endT < 50) { endT = 99; finishNow(); } }
 
       // ball
       if (ball.alive) {
-        var G = H * (2.0 + Math.min(1.0, streak * 0.03));
+        var G = gravity();
         ball.inv = Math.max(0, ball.inv - dt);
         ball.vy += G * dt; ball.x += ball.vx * dt; var py = ball.y; ball.y += ball.vy * dt; ball.ang += ball.spin * dt;
         if (ball.x < r) { ball.x = r; ball.vx = Math.abs(ball.vx); } else if (ball.x > W - r) { ball.x = W - r; ball.vx = -Math.abs(ball.vx); }
         if (ball.y < r) { ball.y = r; ball.vy = Math.abs(ball.vy) * 0.4; }
-        if (!airBonus && ball.y - r < H * 0.07 && streak > 0) { airBonus = true; var ab = 20 * mult(); score += ab; bump('TOUCHED THE LIGHTS +' + ab, C.gold); sfx('chime'); }
+        if (!airBonus && ball.y - r < H * 0.07 && streak > 0) { airBonus = true; var ab = 20 * mult() * mod(); score += ab; bump('TOUCHED THE LIGHTS +' + ab, C.gold); sfx('chime'); progress('lights'); }
         if (ball.vy > 0 && ball.y + r >= handsY && py + r <= handsY + Math.max(8, ball.vy * dt) && Math.abs(ball.x - hx) <= halfW + r * 0.5) {
           bounce(clamp((ball.x - hx) / halfW, -1, 1));
         }
@@ -1308,6 +1354,7 @@ window.NG = window.NG || {};
         t = things[i]; t.vy += t.g * dt; t.x += t.vx * dt; t.y += t.vy * dt; t.rot += t.vr * dt;
         if (t.x < -80 || t.x > W + 80 || t.y > H + 60) { things.splice(i, 1); continue; }
         if (!ball.alive || ended) continue;
+        if (blastT > 0 && t.type !== 'cup' && t.type !== 'guard') { var pull = Math.min(1, dt * 2.4); t.x += (ball.x - t.x) * pull; t.y += (ball.y - t.y) * pull; }
         if (t.type === 'guard') {
           if (ball.inv <= 0 && hitRectCircle(t.x, t.y, 30, 40)) { things.splice(i, 1); escorted++; lose('ESCORTED OUT BY SECURITY'); }
           continue;
@@ -1315,10 +1362,14 @@ window.NG = window.NG || {};
         if (Math.hypot(ball.x - t.x, ball.y - t.y) < r + t.sz) {
           if (t.type === 'cup') {
             if (ball.inv > 0) continue;
-            mood(0, 'angry', 'Who threw that?!', 1700); things.splice(i, 1); hitCups++; streak = 0; score = Math.max(0, score - 30); ball.vy = Math.max(ball.vy, 0) + H * 0.35; ball.vx += (ball.x < t.x ? -1 : 1) * W * 0.18; shake = 9; sfx('thud');
+            mood(0, 'angry', 'Who threw that?!', 1700); things.splice(i, 1); hitCups++; streak = 0; score = Math.max(0, score - 30); ball.vy = Math.max(ball.vy, 0) + H * 0.2; ball.vx += (ball.x < t.x ? -1 : 1) * W * 0.1; perfChain = 0; shake = 9; sfx('thud');
             fx.burst(t.x, t.y, 16, ['#f4c430', '#fff3b0', '#fff'], { min: 60, max: 260, g: 700, shape: 'circ' }); bump(pick(CUP_SAY), '#ffe27a');
           } else {
-            things.splice(i, 1); got++; var base = t.type === 'rose' ? 100 : t.type === 'setlist' ? 50 : 25, pts = base * mult(); score += pts; sfx(t.type === 'rose' ? 'perfect' : 'chime');
+            things.splice(i, 1); got++; progress('loot');
+            if (t.type === 'glass') { lives = Math.min(3, lives + 1); sfx('win'); bump('STRAWBERRY GLASS! +1 HEART', C.pink); cast.react(1, 'happy', 'I saved your glass!', 1700); continue; }
+            if (t.type === 'rose') progress('rose');
+            addHype(t.type === 'rose' ? 0.16 : 0.08);
+            var base = t.type === 'rose' ? 100 : t.type === 'setlist' ? 50 : 25, pts = base * mult() * mod(); score += pts; sfx(t.type === 'rose' ? 'perfect' : 'chime');
             fx.burst(t.x, t.y, 12, t.type === 'rose' ? [C.red, C.pink] : [C.gold, '#fff', C.pink], { shape: t.type === 'rose' ? 'heart' : 'star', min: 60, max: 220, g: 300 });
             bump((t.type === 'rose' ? 'ROSE! +' : t.type === 'setlist' ? 'SETLIST! +' : 'PICK! +') + pts, t.type === 'rose' ? C.pink : C.gold);
           }
@@ -1339,6 +1390,9 @@ window.NG = window.NG || {};
         g.strokeStyle = '#2e8b3d'; g.lineWidth = 3; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, 15); g.stroke();
         g.strokeStyle = C.ink; g.lineWidth = 2; g.fillStyle = C.red; g.beginPath(); g.arc(0, -3, 9, 0, 6.283); g.fill(); g.stroke();
         g.strokeStyle = '#7a0a18'; g.beginPath(); g.arc(0, -3, 5, 0.3, 4.5); g.stroke();
+      } else if (t.type === 'glass') {
+        g.fillStyle = '#fff4f7'; g.beginPath(); g.moveTo(-9, -13); g.lineTo(9, -13); g.lineTo(7, 13); g.lineTo(-7, 13); g.closePath(); g.fill(); g.stroke();
+        g.fillStyle = C.straw; [[-4, -6], [4, -3], [-2, 3], [4, 7]].forEach(function (d) { g.beginPath(); g.arc(d[0], d[1], 2.6, 0, 6.283); g.fill(); });
       } else if (t.type === 'cup') {
         g.fillStyle = '#f4c430'; g.beginPath(); g.moveTo(-9, -11); g.lineTo(9, -11); g.lineTo(6, 11); g.lineTo(-6, 11); g.closePath(); g.fill(); g.stroke();
         g.fillStyle = '#fff'; g.beginPath(); g.arc(-4, -12, 4.5, 0, 6.283); g.arc(3, -13, 5, 0, 6.283); g.fill();
@@ -1405,10 +1459,16 @@ window.NG = window.NG || {};
         g.fillStyle = C.pink; g.strokeStyle = C.ink; g.lineWidth = 2; g.fillRect(14, -52, 34, 20); g.strokeRect(14, -52, 34, 20); g.fillStyle = C.ink; g.font = '11px ' + F_PUNK; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('NANA!', 31, -42);
         g.drawImage(hh, 0, 0, 380, 330, -22, -38, 44, 38); g.restore();
       }
+      // the spotlight she should land in
+      var lit = ball.alive && Math.abs(ball.x - spotX) < spotW;
+      g.fillStyle = lit ? 'rgba(255,240,170,0.26)' : 'rgba(255,240,170,0.14)';
+      g.beginPath(); g.moveTo(spotX - 10, 8); g.lineTo(spotX + 10, 8); g.lineTo(spotX + spotW, handsY + 6); g.lineTo(spotX - spotW, handsY + 6); g.closePath(); g.fill();
+      g.fillStyle = lit ? 'rgba(244,196,48,0.6)' : 'rgba(244,196,48,0.34)'; g.beginPath(); g.ellipse(spotX, handsY + 6, spotW, 11, 0, 0, 6.283); g.fill();
+      if (blastT > 0) { g.fillStyle = 'rgba(255,111,163,0.12)'; g.fillRect(-20, -20, W + 40, H + 40); }
       // pad glow + hands
       var gl = g.createRadialGradient(hx, handsY + 20, 5, hx, handsY + 20, halfW * 1.4); gl.addColorStop(0, 'rgba(255,111,163,0.4)'); gl.addColorStop(1, 'rgba(255,111,163,0)');
       g.fillStyle = gl; g.fillRect(hx - halfW * 1.5, handsY - 40, halfW * 3, 120);
-      var nh = 7, step = (halfW * 2) / nh, skin = ['#f0c8a8', '#d9a47c', '#b57a52', '#f6d7bd'];
+      var nh = halfW > 90 ? 11 : 9, step = (halfW * 2) / nh, skin = ['#f0c8a8', '#d9a47c', '#b57a52', '#f6d7bd'];
       for (i = 0; i < nh; i++) {
         var hxx = hx - halfW + (i + 0.5) * step, wave = Math.sin(tt * 4 + i * 1.3) * 2 + dip * 9;
         g.fillStyle = ['#1d191b', '#7d1f2c', '#2b3a7a'][i % 3]; g.fillRect(hxx - 6, handsY + 14 + wave, 12, 60);
@@ -1430,7 +1490,7 @@ window.NG = window.NG || {};
     }
 
     return {
-      begin: function () { spawnBall(true); },
+      begin: function () { spawnBall(true); nextReq(); },
       update: update, draw: draw,
       resize: function () { layout(); },
       destroy: function () { keys = {}; drag = null; for (var k in imgs) imgs[k].img.onload = null; }
@@ -1716,7 +1776,7 @@ window.NG = window.NG || {};
     var q = function (s) { return root.querySelector(s); };
     var dollEl = q('.mg-doll'), tabsEl = q('.mg-fit-tabs'), gridEl = q('.mg-fit-grid'), barI = q('.mg-fit-bar i'), doneB = q('.mg-fit-done');
     var cast = ctx.cast(q('.mg-strip'), ['nana', 'hachi'], 'mg-cast-strip'); cast.base(0, 'neutral'); cast.base(1, 'happy');
-    var briefs = shuffle(FIT_BRIEFS).slice(0, 3), bi = 0, sel = {}, tab = 'top', T = 17, tl = T, state = 'idle', total = 0, matchSum = 0, ROUND_N = 3, client = null;
+    var briefs = shuffle(FIT_BRIEFS).slice(0, 3), bi = 0, sel = {}, tab = 'top', T = 40, tl = T, state = 'idle', total = 0, matchSum = 0, ROUND_N = 3, client = null;
 
     function dollSVG() {
       var s = '<svg viewBox="0 0 120 220" aria-hidden="true">' + TT + '<rect x="0" y="0" width="120" height="220" fill="none"/>';
@@ -2128,8 +2188,8 @@ window.NG = window.NG || {};
     id: 'crowdsurf', cast: { how: { faces: [['nana', 'smirk'], ['hachi', 'happy']], say: 'I jump, they catch me. They had better catch me.' },
       res: { faces: ['nana', 'hachi'], ex: [['shock', 'shock'], ['neutral', 'happy'], ['smirk', 'happy'], ['happy', 'happy']],
         say: ['The floor was colder than advertised.', 'Not my best landing. Again.', 'Not bad. Do it again.', 'Best gig I ever played without a stage.'] } }, title: 'Crowd Surf',
-    howto: 'Nana has leapt off the stage and trusts you completely. Slide the row of raised hands under her to keep her bouncing, with your aim steering where she goes next. Grab setlists, plectrums and roses. Dodge flying beer cups and security guards. Three drops and she meets the floor.',
-    controls: '&larr; &rarr; / A D to move the hands &nbsp;&middot;&nbsp; or drag on touch',
+    howto: 'Nana has leapt off the stage. Keep the raised hands under her: catch her in the centre and she goes straight up, catch her on the edge and she drifts. Three clean centre catches in a row launch her into the lights. Land in the moving spotlight for double points, finish fan requests, and fill the BLAST meter for five glorious slow-motion seconds. Dodge beer and security. A strawberry glass gives back a heart.',
+    controls: '&larr; &rarr; / A D to move, Space for BLAST &nbsp;&middot;&nbsp; or drag, and tap BLAST',
     lines: [
       ['Nana meets the floor with great artistic commitment. The crowd claps for the effort.', 'A very short flight. A very long apology.'],
       ['She stays up for a while. A beer cup is mostly supportive, in a wet way.', 'Respectable. The hands were slightly sticky but sincere.'],

@@ -17,7 +17,7 @@ window.NG = window.NG || {};
 
   /* 1 ------------------------------------------------------------------ */
   var ep1 = {
-    id: 'ren-lives', title: "The Night Ren Doesn't Drive", spoiler: true,
+    id: 'ren-lives', manga: true, title: "The Night Ren Doesn't Drive", spoiler: true,
     tagline: 'One phone. One set of keys. One road you already know.',
     premise: 'Hachi gets a voicemail from Ren with nothing on it but breathing, on the night he should not get behind the wheel.',
     cast: ['ren', 'nana', 'hachi', 'yasu'], scene: 'tokyo-night',
@@ -606,7 +606,7 @@ window.NG = window.NG || {};
 
   /* 6 ------------------------------------------------------------------ */
   var ep6 = {
-    id: 'sunglasses', title: 'Yasu Takes Off the Sunglasses', spoiler: true,
+    id: 'sunglasses', manga: true, title: 'Yasu Takes Off the Sunglasses', spoiler: true,
     tagline: 'He has driven everyone home. Where does he want to go?',
     premise: 'After the fourth crisis in a week, Yasu sits in a parked van and asks himself a question for the first time.',
     cast: ['yasu', 'nana', 'reira', 'hachi'], scene: 'road-van',
@@ -709,7 +709,7 @@ window.NG = window.NG || {};
 
   /* 7 ------------------------------------------------------------------ */
   var ep7 = {
-    id: 'finding-nana', title: 'Finding Nana', spoiler: true,
+    id: 'finding-nana', manga: true, title: 'Finding Nana', spoiler: true,
     tagline: 'Ten years. One blank postcard. A glass with a chip in it.',
     premise: 'After all the years of silence, a postcard with nothing on it brings Hachi to a grey English harbour and a voice in a pub.',
     cast: ['hachi', 'nana', 'yasu', 'shin'], scene: 'hometown',

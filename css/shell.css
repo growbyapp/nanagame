@@ -240,3 +240,9 @@ body { position: fixed; inset: 0; overflow: hidden; -webkit-touch-callout: none;
 .save-code { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin-top: 8px; }
 .save-code .disclaimer { margin: 0; text-align: left; }
 .save-code textarea { width: 100%; box-sizing: border-box; padding: 10px; font-family: var(--font-letter, monospace); font-size: 16px; line-height: 1.3; word-break: break-all; color: var(--ink, #0d0b0c); background: var(--paper, #f3ece0); border: 2px solid var(--ink, #0d0b0c); resize: none; -webkit-user-select: text; user-select: text; touch-action: auto; }
+
+/* Manga spoiler labels */
+.manga-tag { display: inline-block; padding: 3px 8px; font-family: var(--font-punk, Impact, sans-serif); font-size: 13px; letter-spacing: .05em; text-transform: uppercase; color: var(--paper, #f3ece0); background: var(--red, #d3122a); transform: rotate(-1.5deg); }
+.wf-no .manga-tag { margin-left: 8px; }
+.manga-gate .manga-tag { font-size: 18px; padding: 5px 12px; }
+@media (min-width: 700px) { .manga-tag { font-size: 15px; } .manga-gate .manga-tag { font-size: 22px; } }

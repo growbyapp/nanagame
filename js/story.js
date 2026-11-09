@@ -481,7 +481,7 @@ window.NG = window.NG || {};
       ]
     },
     {
-      id: 'rift', title: 'Rain on the Seventh Floor', steps: [
+      id: 'rift', title: 'Rain on the Seventh Floor', manga: true, steps: [
         music('sad'),
         scene('rain-rift'),
         letter('Hey, Nana.\n\nI have been putting off this letter. I went out and bought stamps instead. I didn\'t need stamps. I bought eighty.\n\nThere\'s a part of our story I don\'t know how to write down. Anyone who read as far as it goes knows the part I mean. For anyone who didn\'t, I\'ll only say that it rained for a long time. And after that, there weren\'t so many of us at the table.\n\nI\'d like you to change it, please. I don\'t care if that\'s cheating.'),

@@ -87,7 +87,7 @@ window.NG = window.NG || {};
   NG.settings = { offsetMs: 0, speed: 1, reduceFlash: false, music: 0.45, sfx: 0.6, voice: 0.9 };
 
   function defaultMeta() {
-    return { settings: null, run: null, unlocked: { 'last-train': true }, best: {}, games: {}, polaroids: {}, keepsakes: {}, endings: {}, whatif: {}, wfRun: null, wfSeen: false, diff: 'hachi', persona: 'pink' };
+    return { settings: null, run: null, unlocked: { 'last-train': true }, best: {}, games: {}, polaroids: {}, keepsakes: {}, endings: {}, whatif: {}, wfRun: null, wfSeen: false, mangaOK: false, diff: 'hachi', persona: 'pink' };
   }
   function freshState() {
     return { persona: 'pink', bond: 0, fame: 0, scandal: 0, harmony: 0, flags: {}, chapter: 0, step: 0, scene: null, music: null };
@@ -219,6 +219,8 @@ window.NG = window.NG || {};
   }
 
   function resumeStory() {
+    var saved = NG.Story.chapters[meta.run.chapter];
+    if (saved && saved.manga && !meta.mangaOK) { mangaGate(resumeStory, showTitle); return; }
     state = meta.run;
     NG.state = state;
     if (!state.flags) state.flags = {};
@@ -236,7 +238,20 @@ window.NG = window.NG || {};
     return c ? c.steps : [];
   }
 
+  // The anime stops around manga volume 12. Anything beyond that gets a warning first.
+  function mangaGate(proceed, back) {
+    if (meta.mangaOK) { proceed(); return; }
+    var g = el('div', 'gate manga-gate');
+    g.innerHTML = '<div class="manga-tag">Manga spoilers</div><h1 class="gate-title">This goes <em>past the anime</em></h1>' +
+      '<p class="disclaimer">What comes next deals with events from the manga that the anime never reached. If you have only seen the anime, you may want to turn back here.</p>';
+    g.appendChild(btn('I have read the manga. Continue', 'primary', function () { meta.mangaOK = true; save(); proceed(); }));
+    g.appendChild(btn('Not yet, take me back', 'ghost', back));
+    mount(g);
+  }
+
   function openChapter(i) {
+    var gated = NG.Story.chapters[i];
+    if (gated && gated.manga && !meta.mangaOK) { mangaGate(function () { openChapter(i); }, showTitle); return; }
     state.chapter = i;
     state.step = 0;
     var chapter = NG.Story.chapters[i];
@@ -684,7 +699,7 @@ window.NG = window.NG || {};
       var c = el('button', 'wf-card');
       c.type = 'button';
       var faces = (ep.cast || []).slice(0, 3).map(function (who) { return '<div class="wf-face">' + portrait(who, 'neutral') + '</div>'; }).join('');
-      c.innerHTML = '<div class="wf-no">Episode ' + (i + 1) + '</div><div class="wf-title">' + esc(ep.title) + '</div>' +
+      c.innerHTML = '<div class="wf-no">Episode ' + (i + 1) + (ep.manga ? '<span class="manga-tag">Manga spoilers</span>' : '') + '</div><div class="wf-title">' + esc(ep.title) + '</div>' +
         '<div class="wf-tag">' + esc(ep.tagline || '') + '</div><div class="wf-faces">' + faces + '</div>' +
         '<div class="wf-found">' + ids.map(function (x) { return found[x] ? '&#9733;' : '&#9734;'; }).join('') + ' <span>' + seen + ' of ' + ids.length + ' endings</span></div>';
       c.addEventListener('click', function () { sfx('select'); showEpisode(ep); });
@@ -697,7 +712,7 @@ window.NG = window.NG || {};
   function showWhatIfGate() {
     var g = el('div', 'gate');
     g.innerHTML = '<h1 class="gate-title">These roads were <em>never taken</em></h1>' +
-      '<p class="disclaimer">What If...? names late-series events outright, including the hardest ones. It deals with grief, addiction and loss. It is fan fiction, not canon.</p>';
+      '<p class="disclaimer">What If...? deals with grief, addiction and loss, and it is fan fiction, not canon. It assumes you know the anime. Episodes marked Manga spoilers go past where the anime stops, and will warn you first.</p>';
     g.appendChild(btn('I know the story. Take me there', 'primary', function () { meta.wfSeen = true; save(); showWhatIf(); }));
     g.appendChild(btn('Not yet', 'ghost', showTitle));
     mount(g);
@@ -707,13 +722,17 @@ window.NG = window.NG || {};
     var found = meta.whatif[ep.id] || {};
     var p = el('div', 'prep wf-detail');
     var faces = (ep.cast || []).map(function (who) { return '<div class="wf-face big">' + portrait(who, 'neutral') + '</div>'; }).join('');
-    p.innerHTML = '<div class="chapter-no">What If...?</div><h2>' + esc(ep.title) + '</h2><div class="wf-faces">' + faces + '</div><p>' + esc(ep.premise || '') + '</p>' +
+    p.innerHTML = '<div class="chapter-no">What If...?</div>' + (ep.manga ? '<div class="manga-tag">Manga spoilers</div>' : '') + '<h2>' + esc(ep.title) + '</h2><div class="wf-faces">' + faces + '</div><p>' + esc(ep.premise || '') + '</p>' +
       '<div class="wf-endings">' + Object.keys(ep.endings).map(function (id) {
         return found[id] ? '<div class="wf-end on"><b>' + esc(ep.endings[id].title) + '</b><span>' + esc(ep.endings[id].caption || '') + '</span></div>' : '<div class="wf-end"><b>? ? ?</b><span>This road is still dark.</span></div>';
       }).join('') + '</div>';
     var acts = el('div', 'results-actions');
-    if (meta.wfRun && meta.wfRun.ep === ep.id) acts.appendChild(btn('Continue where you left off', 'primary', function () { startEpisode(ep, meta.wfRun); }));
-    acts.appendChild(btn(meta.wfRun && meta.wfRun.ep === ep.id ? 'Start over' : 'Begin', meta.wfRun && meta.wfRun.ep === ep.id ? '' : 'primary', function () { startEpisode(ep, null); }));
+    if (meta.wfRun && meta.wfRun.ep === ep.id) acts.appendChild(btn('Continue where you left off', 'primary', function () { begin(meta.wfRun); }));
+    function begin(resume) {
+      if (ep.manga) mangaGate(function () { startEpisode(ep, resume); }, function () { showEpisode(ep); });
+      else startEpisode(ep, resume);
+    }
+    acts.appendChild(btn(meta.wfRun && meta.wfRun.ep === ep.id ? 'Start over' : 'Begin', meta.wfRun && meta.wfRun.ep === ep.id ? '' : 'primary', function () { begin(null); }));
     acts.appendChild(btn('Back', 'ghost', showWhatIf));
     p.appendChild(acts);
     mount(p);
@@ -1335,7 +1354,7 @@ window.NG = window.NG || {};
 
   function makeSaveCode() {
     var data = {};
-    ['run', 'unlocked', 'best', 'games', 'polaroids', 'keepsakes', 'endings', 'whatif', 'wfRun', 'wfSeen', 'diff', 'persona'].forEach(function (k) { data[k] = meta[k]; });
+    ['run', 'unlocked', 'best', 'games', 'polaroids', 'keepsakes', 'endings', 'whatif', 'wfRun', 'wfSeen', 'mangaOK', 'diff', 'persona'].forEach(function (k) { data[k] = meta[k]; });
     var bytes = new TextEncoder().encode(JSON.stringify(data));
     if (!window.CompressionStream) return Promise.resolve(CODE_PREFIX + 'p' + toB64(bytes));
     return pipe(bytes, new CompressionStream('deflate-raw')).then(function (z) { return CODE_PREFIX + 'z' + toB64(z); });
@@ -1365,6 +1384,7 @@ window.NG = window.NG || {};
     keys.forEach(function (k) { out[k] = d[k]; });
     out.unlocked['last-train'] = true;
     out.wfSeen = !!d.wfSeen;
+    out.mangaOK = !!d.mangaOK;
     out.diff = DIFFS.some(function (x) { return x.id === d.diff; }) ? d.diff : 'hachi';
     out.persona = d.persona === 'black' ? 'black' : 'pink';
     out.run = validRun(d.run) ? d.run : null;
