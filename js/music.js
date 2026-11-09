@@ -27,6 +27,77 @@ window.NG = window.NG || {};
   }
   probe('assets/music/happy.mp3', function (ok) { useLocal = ok; });
   probe('assets/voice/laugh.mp3', function (ok) { hasVoice = ok; });
+
+  /* Tracks a player picks themselves. They are stored only in this browser and never leave the device. */
+  var custom = {}, customNames = {}, CUSTOM_TRIM = 0.6, MAX_BYTES = 40 * 1024 * 1024;
+
+  function openDb() {
+    return new Promise(function (resolve, reject) {
+      var req = window.indexedDB.open('nana707-tracks', 1);
+      req.onupgradeneeded = function () { req.result.createObjectStore('tracks'); };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error); };
+    });
+  }
+  function withStore(mode, fn) {
+    return openDb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction('tracks', mode), req = fn(tx.objectStore('tracks'));
+        tx.oncomplete = function () { db.close(); resolve(req && req.result); };
+        tx.onerror = tx.onabort = function () { db.close(); reject(tx.error); };
+      });
+    });
+  }
+  function adopt(slot, rec) {
+    if (custom[slot]) URL.revokeObjectURL(custom[slot]);
+    custom[slot] = URL.createObjectURL(rec.blob);
+    customNames[slot] = rec.name;
+  }
+  function loadCustom() {
+    if (!window.indexedDB) return;
+    Promise.all([withStore('readonly', function (s) { return s.getAllKeys(); }), withStore('readonly', function (s) { return s.getAll(); })])
+      .then(function (r) { r[0].forEach(function (slot, i) { if (TRACKS[slot]) adopt(slot, r[1][i]); }); })
+      .catch(function () { /* private mode: the originals still play */ });
+  }
+  loadCustom();
+
+  function canPlay(blob) {
+    return new Promise(function (resolve, reject) {
+      var a = new window.Audio(), url = URL.createObjectURL(blob);
+      var done = function (fn, v) { clearTimeout(t); URL.revokeObjectURL(url); fn(v); };
+      var t = setTimeout(function () { done(reject, new Error('timeout')); }, 8000);
+      a.preload = 'metadata';
+      a.addEventListener('loadedmetadata', function () { done(resolve); });
+      a.addEventListener('error', function () { done(reject, new Error('unplayable')); });
+      a.src = url;
+    });
+  }
+
+  function reloadIfPlaying(slot) {
+    delete positions[slot];
+    if (current === slot) { music.el.src = srcFor(slot); apply(); play(music); }
+  }
+
+  A.customTracks = function () { return customNames; };
+  A.setCustomTrack = function (slot, file) {
+    if (!TRACKS[slot] || !file) return Promise.reject(new Error('slot'));
+    if (file.size > MAX_BYTES) return Promise.reject(new Error('large'));
+    return canPlay(file).then(function () {
+      var rec = { blob: file, name: file.name };
+      return withStore('readwrite', function (s) { return s.put(rec, slot); }).then(function () {
+        adopt(slot, rec);
+        reloadIfPlaying(slot);
+      });
+    });
+  };
+  A.clearCustomTrack = function (slot) {
+    return withStore('readwrite', function (s) { return s.delete(slot); }).then(function () {
+      if (custom[slot]) URL.revokeObjectURL(custom[slot]);
+      delete custom[slot];
+      delete customNames[slot];
+      reloadIfPlaying(slot);
+    });
+  };
   var ALIAS = { room: 'happy', tension: 'intense' };
   var FADE_OUT = 0.35, FADE_IN = 0.7, DUCK = 0.3, TICK = 30;
   var SILENCE = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=';
@@ -69,9 +140,10 @@ window.NG = window.NG || {};
   }
 
   function trackId(id) { return ALIAS[id] || id; }
+  function srcFor(t) { return custom[t] || (useLocal ? TRACKS[t].local : TRACKS[t].src); }
 
   function apply() {
-    var trim = current ? (useLocal ? TRACKS[current].localTrim : TRACKS[current].trim) : 1;
+    var trim = !current ? 1 : custom[current] ? CUSTOM_TRIM : (useLocal ? TRACKS[current].localTrim : TRACKS[current].trim);
     setGain(music, level * trim * vol.music * duck);
   }
 
@@ -82,7 +154,7 @@ window.NG = window.NG || {};
     current = next || null;
     music.el.pause();
     if (!next) { level = 0; return; }
-    music.el.src = useLocal ? TRACKS[next].local : TRACKS[next].src;
+    music.el.src = srcFor(next);
     var at = positions[next] || 0;
     if (at) {
       var seek = function () {

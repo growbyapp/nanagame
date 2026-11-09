@@ -47,7 +47,7 @@ Never says: that he is a kid, or that he wants someone to come for him.
 Writers' rule: he is a child. Nothing romantic or sexual, ever. Give him family, school, a future.
 
 ## Yasu
-Register: calm, unhurried, courteous. Former lawyer's precision. Dry understatement.
+Register: calm, unhurried, courteous. The precision of someone who passed the bar and walked out of the training. Dry understatement.
 Address: first names, gentle; an elder-brother patience that nobody earned.
 Deflects from: himself, his history with Reira, what he wants. Answers a question with a question, or asks if you have eaten.
 Love: logistics. Rides, bail, soup, a hand on a head. Anger: almost never visible and terrifying when it is.
@@ -65,7 +65,7 @@ Preoccupations: Yasu, being a voice without a person, who she would be without T
 
 ## Takumi
 Register: flat, efficient, brief. Treats a conversation as a meeting already over.
-Address: first names, no softness; "Hachi" said like a claim.
+Address: first names, no softness. He calls Hachi "Nana" when everyone else uses the dog's name, and that is the claim. Keeps his contractions to a minimum.
 Deflects from: guilt, by being correct. Sidesteps where he has been.
 Love: provision and control; he does turn up, and pays, and arranges. Anger: lower and more reasonable than anyone else's.
 Humour: rare, cruel, accurate.

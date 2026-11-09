@@ -1,5 +1,5 @@
 /* HEY, NANA — Room 707 :: minigames.js
-   Five short minigames. Classic script, no deps. All art is drawn in canvas / DOM / CSS.
+   Ten short minigames. Classic script, no deps. All art is drawn in canvas / DOM / CSS.
    Unofficial, non-commercial fan tribute. All writing is original. */
 window.NG = window.NG || {};
 (function () {
@@ -294,7 +294,10 @@ window.NG = window.NG || {};
   function shortcake(ctx) {
     var cv = ctx.canvas(), g = cv.g, W = 0, H = 0, lh = 28, baseW = 200, baseY = 0, tol = 6, bg = null;
     var fx = new Fx(), stack = [], pieces = [], cur = null;
-    var layers = 0, perfects = 0, streak = 0, bestStreak = 0, cam = 0, shake = 0, tt = 0, timeLeft = 50, ended = false, endT = 0;
+    var layers = 0, perfects = 0, streak = 0, bestStreak = 0, cam = 0, shake = 0, tt = 0, timeLeft = 90, ended = false, endT = 0;
+    // Depth: the cake only pays in full if you SERVE it standing, and Nana's black layers (once she is home) are the big gamble.
+    var score = 0, served = false, collapsed = false, nanaHome = false, nanaPerfect = 0;
+    var serveBtn = el('button', 'mg-sc-serve', 'Serve it'); serveBtn.type = 'button'; serveBtn.tabIndex = -1; serveBtn.style.display = 'none'; ctx.stage.appendChild(serveBtn);
     var cast = ctx.cast(ctx.stage, ['hachi', 'nana'], 'mg-corner');
     cast.base(0, 'happy'); cast.base(1, 'smirk'); cast.say(0, 'Okay. Okay. I can do this.', 3500);
     var NANA_SAY = { perfect: ['Hm. Not bad.', 'Fine. It is tidy.', 'Do not cry on it.'], cut: ['Tilted.', 'Leaning Tower of Cake.', 'Trim it. Move on.'] };
@@ -308,7 +311,7 @@ window.NG = window.NG || {};
 
     function layout() {
       var oldW = W; W = cv.W; H = cv.H;
-      lh = clamp(H * 0.062, 20, 36); baseW = Math.min(W * 0.52, 280); baseY = H - 52; tol = Math.max(5, baseW * 0.03);
+      lh = clamp(H * 0.062, 20, 36); baseW = Math.min(W * 0.52, 280); baseY = H - 52; tol = Math.max(7, baseW * 0.042);
       if (oldW && oldW !== W) {
         var k = W / oldW, i;
         for (i = 0; i < stack.length; i++) { stack[i].x *= k; stack[i].w *= k; }
@@ -330,10 +333,10 @@ window.NG = window.NG || {};
     layout();
     stack.push({ x: (W - baseW) / 2, w: baseW, k: 0, sq: 0, berry: 0 });
 
-    function speed() { return clamp(W * (0.62 + 0.045 * layers), W * 0.6, W * 2.1); }
+    function speed() { return clamp(W * (0.42 + 0.018 * layers), W * 0.42, W * 0.95); }
     function newSwing() {
       var t = stack[stack.length - 1];
-      cur = { x: Math.random() < 0.5 ? 0 : W - t.w, w: t.w, dir: 1, fy: Math.max(H * 0.18, 112), vy: 0, state: 'swing' };
+      cur = { x: Math.random() < 0.5 ? 0 : W - t.w, w: t.w, dir: 1, fy: Math.max(H * 0.18, 112), vy: 0, state: 'swing', nana: nanaHome && stack.length % 3 === 0 };
       cur.dir = cur.x === 0 ? 1 : -1;
     }
     function say(kind) {
@@ -349,54 +352,72 @@ window.NG = window.NG || {};
     }
 
     function land() {
-      var top = stack[stack.length - 1], n = stack.length, wy = topY(n + 1);
+      var top = stack[stack.length - 1], n = stack.length, wy = topY(n + 1), kind = cur.nana ? 2 : n % 2;
       var dx = cur.x - top.x, ov = cur.w - Math.abs(dx), cx = cur.x + cur.w / 2;
       if (ov <= 3) {
-        pieces.push({ x: cur.x, w: cur.w, y: wy, vx: dx > 0 ? 160 : -160, vy: -120, rot: 0, vr: dx > 0 ? 3 : -3, k: n % 2 });
+        pieces.push({ x: cur.x, w: cur.w, y: wy, vx: dx > 0 ? 160 : -160, vy: -120, rot: 0, vr: dx > 0 ? 3 : -3, k: kind });
         shake = 10; sfx('thud'); fx.text(cx, wy + cam - 30, 'WHIFF!', C.paper, 30);
-        mood('sad', 'smirk', 0, 'The cake... left. Without me.'); endGame(); return;
+        mood('sad', 'smirk', 0, 'The cake left. Without me. This has the Demon Lord all over it.'); endGame(true); return;
       }
-      var L;
+      var L, worth = Math.min(70, 10 + layers * 3), pts;
       if (Math.abs(dx) <= tol) {
-        var gain = Math.min(baseW - top.w, baseW * (streak >= 2 ? 0.07 : 0.045));
-        L = { x: top.x - gain / 2, w: top.w + gain, k: n % 2, sq: 0.55, berry: 1, bside: perfects % 2 };
+        var gain = Math.min(baseW - top.w, baseW * (cur.nana ? 0.24 : streak >= 2 ? 0.07 : 0.045));
+        L = { x: top.x - gain / 2, w: top.w + gain, k: kind, sq: 0.55, berry: 1, bside: perfects % 2 };
         perfects++; streak++; bestStreak = Math.max(bestStreak, streak);
+        pts = (worth + Math.min(48, streak * 6)) * (cur.nana ? 3 : 1); score += pts;
         sfx('perfect'); shake = 5 + Math.min(8, streak);
-        var cs = CALL[Math.min(CALL.length - 1, streak - 1)];
-        fx.text(cx, wy + cam - 36, streak > 1 ? cs + ' x' + streak : cs, C.pink, 28 + Math.min(14, streak * 2));
+        var cs = cur.nana ? 'NANA APPROVES' : CALL[Math.min(CALL.length - 1, streak - 1)];
+        fx.text(cx, wy + cam - 36, cs + ' +' + pts, cur.nana ? C.gold : C.pink, 26 + Math.min(12, streak * 2));
         var hot = ['#e8294f', '#ff6fa3', '#f4c430', '#fff'];
         fx.burst(cx, wy + cam + lh / 2, 14 + Math.min(18, streak * 3), hot, { shape: streak > 2 ? 'heart' : 'star', min: 80, max: 300, g: 500 });
         if (!ctx.reduce && streak > 3) fx.burst(cx, wy + cam, 10, ['#fff'], { shape: 'circ', min: 120, max: 360, g: 0, life: 0.6 });
-        say(streak >= 4 ? 'hot' : 'perfect');
+        if (cur.nana) { nanaPerfect++; mood('happy', 'smirk', 1, pick(['Black on pink. Finally, some taste.', 'That one can stay.', 'Do not tell her I liked it.'])); }
+        else say(streak >= 4 ? 'hot' : 'perfect');
       } else {
         var nx = Math.max(cur.x, top.x);
-        L = { x: nx, w: ov, k: n % 2, sq: 0.35, berry: 0 };
+        L = { x: nx, w: ov, k: kind, sq: 0.35, berry: 0 };
         var pw = cur.w - ov, px = dx > 0 ? top.x + top.w : cur.x;
-        pieces.push({ x: px, w: pw, y: wy, vx: dx > 0 ? 70 : -70, vy: -60, rot: 0, vr: dx > 0 ? 2.4 : -2.4, k: n % 2 });
-        streak = 0; sfx('good'); shake = 3;
+        pieces.push({ x: px, w: pw, y: wy, vx: dx > 0 ? 70 : -70, vy: -60, rot: 0, vr: dx > 0 ? 2.4 : -2.4, k: kind });
+        if (cur.nana) { // black sponge is unforgiving: a sloppy landing shaves off extra
+          var extra = clamp(Math.abs(dx) * 0.5, 0, Math.max(0, ov - 8));
+          if (dx < 0) L.x += extra; L.w -= extra;
+          mood('shock', 'neutral', 1, 'Cocoa does not forgive. Neither do I.');
+        } else say('cut');
+        streak = 0; pts = worth; score += pts; sfx('good'); shake = 3;
         fx.burst(dx > 0 ? px : px + pw, wy + cam + lh / 2, 8, ['#f3c46b', '#ffd0df'], { min: 40, max: 160, g: 700 });
-        say('cut');
       }
       stack.push(L); layers++;
-      if (L.w < 16) { fx.text(W / 2, H * 0.3, 'TOO WOBBLY!', C.paper, 30); mood('shock', 'angry', 0, 'It is WOBBLING!'); endGame(); return; }
-      if (timeLeft <= 0) { endGame(); return; }
+      if (layers === 3) serveBtn.style.display = '';
+      if (layers === 6 && !nanaHome) { nanaHome = true; fx.text(W / 2, H * 0.3, 'NANA IS HOME', C.gold, Math.min(30, W / 12), 1.8); mood('shock', 'smirk', 1, 'Every third layer is mine now. Land it clean or lose some.'); sfx('chime'); }
+      if (L.w < 16) { fx.text(W / 2, H * 0.3, 'TOO WOBBLY!', C.paper, 30); mood('shock', 'angry', 0, 'It is WOBBLING!'); endGame(true); return; }
+      if (layers >= 30) { fx.text(W / 2, H * 0.24, 'IT HIT THE CEILING', C.pink, Math.min(30, W / 12), 1.6); serve(true); return; }
+      if (timeLeft <= 0) { serve(true); return; }
       newSwing();
     }
 
-    function endGame() { if (ended) return; ended = true; endT = 0; cur = null; }
+    function endGame(fell) { if (ended) return; ended = true; endT = 0; cur = null; collapsed = !!fell; serveBtn.style.display = 'none'; }
+    function serve(auto) {
+      if (ended || (!auto && (!ctx.playing || layers < 3))) return;
+      served = true; endGame(false); sfx('cheer'); fx.text(W / 2, H * 0.3, auto ? 'GUESTS ARE HERE!' : 'SERVED!', C.gold, Math.min(34, W / 11), 1.5);
+      fx.burst(W / 2, H * 0.4, 30, ['#e8294f', '#ff6fa3', '#f4c430', '#fff'], { shape: 'heart', min: 80, max: 320, g: 400 });
+      mood('happy', 'smirk', 0, 'It is standing! Everybody look at it quickly!');
+    }
 
     function finishNow() {
-      var score = layers * 10 + perfects * 20 + bestStreak * 10;
-      var stars = layers >= 18 ? 3 : layers >= 11 ? 2 : layers >= 5 ? 1 : 0;
+      var final = served ? score : Math.floor(score * 0.5);
+      var stars = !served ? (final >= 200 ? 1 : 0) : final >= 1700 ? 3 : final >= 800 ? 2 : final >= 200 ? 1 : 0;
       ctx.finish({
-        title: 'Cake report', score: score, stars: stars, effects: { bond: stars },
-        html: '<div class="mg-stats"><span>Layers <b>' + layers + '</b></span><span>Perfect <b>' + perfects + '</b></span><span>Best streak <b>' + bestStreak + '</b></span></div>'
+        title: served ? 'Cake report' : 'Cake incident report', score: final, stars: stars, effects: { bond: stars },
+        html: '<div class="mg-stats"><span>Layers <b>' + layers + '</b></span><span>Perfect <b>' + perfects + '</b></span><span>Black layers <b>' + nanaPerfect + '</b></span><span>Best streak <b>' + bestStreak + '</b></span></div>' +
+          (served ? '' : '<p class="mg-p">It fell before anyone saw it, so it only counts for half.</p>')
       });
     }
 
+    ctx.on(serveBtn, 'pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); serve(false); });
     ctx.on(window, 'keydown', function (e) {
       var k = e.key;
       if (k === ' ' || k === 'Enter' || k === 'ArrowDown' || k === 's' || k === 'S') { if (!e.repeat) drop(); if (ctx.playing) e.preventDefault(); }
+      else if ((k === 'e' || k === 'E') && !e.repeat) serve(false);
     });
     ctx.on(cv.c, 'pointerdown', function (e) { e.preventDefault(); drop(); });
 
@@ -413,12 +434,12 @@ window.NG = window.NG || {};
       if (cur.state === 'swing') {
         cur.x += cur.dir * speed() * dt;
         if (cur.x < 0) { cur.x = 0; cur.dir = 1; } else if (cur.x > W - cur.w) { cur.x = W - cur.w; cur.dir = -1; }
-        if (timeLeft <= 0) endGame();
+        if (timeLeft <= 0) serve(true);
       } else {
         cur.vy += H * 5 * dt; cur.fy += cur.vy * dt;
         if (cur.fy >= topY(stack.length + 1) + cam) land();
       }
-      ctx.setScore('LAYERS <b>' + layers + '</b> &middot; STREAK <b>' + streak + '</b> &middot; ' + Math.max(0, Math.ceil(timeLeft)) + 's');
+      ctx.setScore('SCORE <b>' + score + '</b> &middot; LAYERS <b>' + layers + '</b> &middot; ' + Math.max(0, Math.ceil(timeLeft)) + 's');
     }
 
     function drawLayer(L, wy) {
@@ -426,7 +447,12 @@ window.NG = window.NG || {};
       var sq = L.sq || 0;
       g.translate(L.x + L.w / 2, wy + lh); g.scale(1 + sq * 0.18, 1 - sq * 0.4); g.translate(-(L.x + L.w / 2), -(wy + lh));
       g.lineWidth = 2.5; g.strokeStyle = C.ink;
-      if (L.k === 1) {
+      if (L.k === 2) {
+        g.fillStyle = '#2a1c1f'; rrect(g, L.x, wy, L.w, lh, 6); g.fill(); g.stroke();
+        g.strokeStyle = C.red; g.lineWidth = 3; g.beginPath(); g.moveTo(L.x + 6, wy + lh * 0.5);
+        for (var dz = L.x + 6; dz < L.x + L.w - 6; dz += 14) g.lineTo(dz + 7, wy + lh * (dz % 28 < 14 ? 0.25 : 0.75));
+        g.stroke(); g.strokeStyle = C.ink;
+      } else if (L.k === 1) {
         g.fillStyle = '#ffd0df'; rrect(g, L.x, wy, L.w, lh, 6); g.fill(); g.stroke();
         g.fillStyle = '#fff3f7';
         for (var xx = L.x + 8; xx < L.x + L.w - 4; xx += 16) { g.beginPath(); g.arc(xx, wy + 2, 7, 0, Math.PI); g.fill(); }
@@ -462,7 +488,7 @@ window.NG = window.NG || {};
           g.strokeStyle = C.ink; g.lineWidth = 2; g.beginPath(); g.moveTo(cur.x + cur.w / 2, 0); g.lineTo(cur.x + cur.w / 2, cur.fy); g.stroke();
           g.fillStyle = C.red; g.beginPath(); g.arc(cur.x + cur.w / 2, cur.fy, 4, 0, 6.283); g.fill();
         }
-        drawLayer({ x: cur.x, w: cur.w, k: stack.length % 2, sq: 0 }, cur.fy);
+        drawLayer({ x: cur.x, w: cur.w, k: cur.nana ? 2 : stack.length % 2, sq: 0 }, cur.fy);
       }
       fx.draw(g);
       g.restore();
@@ -520,6 +546,24 @@ window.NG = window.NG || {};
     { n: 'Yuma the Bike Mechanic', t: 'Text me when you get home.', d: ['Fixed your bike and said nothing', 'Hands have grease, heart has manners', '"You can leave anytime," he said, sincerely'], w: 'He texted "got home?" and meant it. Run toward him.', ok: true },
     { n: 'Osamu from the Bookshop', t: 'You can have the last dumpling.', d: ['Never dog-ears pages', 'Reads you the good bits out loud', 'Gives away the last dumpling, calmly'], w: 'The last dumpling. A man who gives up the last dumpling is a keeper.', ok: true, acc: 'glasses' }
   ];
+  // Trick suitors arrive once Hachi has warmed up: scary-but-decent, and perfect-with-one-quiet-tell.
+  var TRICKY = [
+    { n: 'Haru, Perfect on Paper', t: 'My mother would adore you.', d: ['Remembers your birthday, and your ex\'s', 'Cooks, cleans, files a small report', 'Has a spreadsheet tab with your name on it'], w: 'The tab was called "Phase Two".', acc: 'glasses', nr: 'Read the third line again. Slowly.' },
+    { n: 'Ren-ish Guy From the Bar', t: 'I only write sad songs about you.', d: ['Very nice cheekbones, sadly', 'Met you eleven minutes ago', 'Has already written the breakup ballad'], w: 'The second verse is about his car.', acc: 'shades', nr: 'Cheekbones are not a personality. I would know.' },
+    { n: 'Kenji, So Supportive', t: 'You do you. I will just watch.', d: ['Waits outside your work "to be nice"', 'Knows your train, and the carriage', 'Never once asked if you wanted him to'], w: 'Supportive like a very slow search party.', nr: 'That is not nice. That is a schedule.' },
+    { n: 'Toshi, Green Flag Collector', t: 'I went to therapy. Twice. Ask me.', d: ['Mentions therapy before your drink arrives', 'Calls his ex "a teacher"', 'Has you on a list of Growth Moments'], w: 'You were Growth Moment nine.', acc: 'glasses', nr: 'He said all the right words. In order. Run.' },
+    { n: 'Genzo, Looks Like a Threat', t: 'Is this seat taken. Sorry. Hello.', d: ['Neck tattoo is his grandmother\'s recipe', 'Cracks his knuckles, then rescues a moth', 'Drives like a hearse so the cake stays level'], w: 'He carried the moth outside. It sent a card.', ok: true, acc: 'shades', nr: 'Terrifying. Keep him. He reminds me of a drummer I know.' },
+    { n: 'Bun, Unemployed (Ask Why)', t: 'I quit to look after my dad.', d: ['No job, for a very good reason', 'Wears the same coat, mends it himself', 'Paid you back the 200 yen. In person.'], w: 'He was broke and he still brought the 200 yen.', ok: true, nr: 'No money, no lies. Better odds than most.' },
+    { n: 'Rokuro With the Loud Laugh', t: 'HA! SORRY! THAT WAS LOUD!', d: ['Laughs like a dropped tray', 'Embarrassing shirt, picked by his niece', 'Stopped talking the moment you looked tired'], w: 'The loud ones are sometimes just glad you came.', ok: true, acc: 'hat', nr: 'Loud is not the same as bad. Trust me on that.' },
+    { n: 'Ichiro the Awkward', t: 'I practised this sentence.', d: ['Sweating through a very clean shirt', 'Brought a list of topics, offered you the list', 'Asked before he sat down'], w: 'Topic four was "are you okay". Keep him.', ok: true, acc: 'glasses', nr: 'He is a disaster. A polite one. Green.' }
+  ];
+  var DEMON_DISGUISE = [
+    { n: 'Akuma Ohno, Nice Young Man', t: 'I am a completely normal human.', d: ['Warm smile, excellent manners', 'Hat worn indoors, two small lumps under it', 'Business card reads "Contracts, Souls, Misc."'], w: 'The lumps were horns. The card was a clue.' },
+    { n: 'Mr. Satou (Definitely)', t: 'Sign here. For the, uh, date.', d: ['Brought flowers and a notary', 'Smells faintly of burnt paper', 'Casts a shadow with a tail'], w: 'Nobody brings a notary to karaoke.' },
+    { n: 'Kind Stranger, Age "Yes"', t: 'What a lovely soul. Figure of speech.', d: ['Holds doors, and eye contact, forever', 'Says "in perpetuity" about dessert', 'Has never been seen entering a church'], w: 'In perpetuity. About the pudding.' }
+  ];
+  var NANA_READ_BAD = ['Nope. I could smell it from here.', 'Hachi. No. Put him down.', 'That one is a future anecdote.'];
+  var NANA_READ_OK = ['He is fine. Annoyingly fine.', 'I looked for the catch. There is no catch. Weird.', 'You can keep that one. Feed it.'];
   var DEMON = [
     { n: 'THE DEMON LORD', t: 'One tiny favour, sweetheart?', d: ['He offers you a "free soulmate"', 'Terms: left and right become "emotional concepts"', 'Smells of burnt contract paper'], w: 'Left and right just swapped. Good luck, bestie.' },
     { n: 'THE DEMON LORD (AGAIN)', t: 'I only want what is best for you.', d: ['Mysteriously holding your phone', 'Has rearranged your compass', 'Tiny horns, huge fine print'], w: 'Your compass is now a suggestion.' },
@@ -572,18 +616,20 @@ window.NG = window.NG || {};
       '<div class="mg-rf-deck"></div>' +
       '<div class="mg-rf-toast"></div>' +
       '<div class="mg-rf-btns"><button type="button" class="mg-rf-btn mg-rf-l" data-s="L"><b>RUN</b><small>&larr; / A</small></button>' +
+      '<button type="button" class="mg-rf-ask" tabindex="-1"><b>ASK NANA</b><small></small></button>' +
       '<button type="button" class="mg-rf-btn mg-rf-r" data-s="R"><b>LOVE</b><small>D / &rarr;</small></button></div>';
     ctx.stage.appendChild(root);
     var q = function (s) { return root.querySelector(s); };
     var heartsEl = q('.mg-rf-hearts'), streakEl = q('.mg-rf-streak'), barI = q('.mg-rf-bar i'), banner = q('.mg-rf-banner');
     var cast = ctx.cast(q('.mg-rf-cast'), ['hachi', 'nana'], 'mg-cast-inline'); cast.base(0, 'happy'); cast.base(1, 'smirk');
     var lastBad = false, NANA_FACEPALM = ['*facepalm*', 'Hachi. HACHI.', 'I did not say anything. Loudly.', 'Breathe. Just breathe.'];
-    var deck = q('.mg-rf-deck'), toast = q('.mg-rf-toast'), btnL = q('.mg-rf-l'), btnR = q('.mg-rf-r');
+    var deck = q('.mg-rf-deck'), toast = q('.mg-rf-toast'), btnL = q('.mg-rf-l'), btnR = q('.mg-rf-r'), askB = q('.mg-rf-ask');
+    var asks = 2, asked = false, caughtDemon = 0, tricks = shuffle(TRICKY), ti = 0, disg = shuffle(DEMON_DISGUISE), demonsSeen = 0;
 
     var reds = shuffle(SUITORS.filter(function (c) { return !c.ok; })), oks = shuffle(SUITORS.filter(function (c) { return c.ok; }));
     var demons = shuffle(DEMON), ri = 0, oi = 0, di = 0, nCard = 0;
-    var score = 0, correct = 0, streak = 0, best = 0, hearts = 3, timeLeft = 75, elapsed = 0;
-    var card = null, cardEl = null, cardT = 0, cardMax = 3, flipped = false, flipLeft = 0, nextDemon = rr(14, 18), demonDue = false, locked = false, ended = false;
+    var score = 0, correct = 0, streak = 0, best = 0, hearts = 3, timeLeft = 95, elapsed = 0;
+    var card = null, cardEl = null, cardT = 0, cardMax = 3, flipped = false, flipLeft = 0, nextDemon = rr(20, 26), demonDue = false, locked = false, ended = false;
     var toastT = 0, drag = null, decentSeen = 0, decentGot = 0;
 
     function drawHearts() { var s = ''; for (var i = 0; i < 3; i++) s += '<span class="' + (i < hearts ? 'on' : 'off') + '">&#9829;</span>'; heartsEl.innerHTML = s; }
@@ -597,13 +643,18 @@ window.NG = window.NG || {};
 
     function nextCard() {
       var c;
-      if (demonDue) { c = Object.create(demons[di++ % demons.length]); c.demon = true; demonDue = false; }
-      else if ((Math.random() < 0.2 || reds.length - ri < 1) && oi < oks.length) { c = oks[oi++]; }
+      if (demonDue) {
+        demonDue = false;
+        if (demonsSeen++ === 0) { c = Object.create(demons[di++ % demons.length]); c.demon = true; }
+        else { c = Object.create(disg[(demonsSeen - 2) % disg.length]); c.disg = true; c.acc = 'hat'; }
+      }
+      else if (nCard >= 5 && ti < tricks.length && Math.random() < 0.34) { c = tricks[ti++]; }
+      else if ((Math.random() < 0.24 || reds.length - ri < 1) && oi < oks.length) { c = oks[oi++]; }
       else { if (ri >= reds.length) { reds = shuffle(reds); ri = 0; } c = reds[ri++]; }
       if (oi >= oks.length && Math.random() < 0.5) { oks = shuffle(oks); oi = 0; }
       card = c; nCard++; if (c.ok) decentSeen++;
-      cardMax = c.demon ? 7 : Math.max(4, 7.5 - Math.min(3, streak * 0.15) - Math.min(0.5, elapsed * 0.008));
-      cardT = cardMax; deck.innerHTML = '';
+      cardMax = c.demon ? 12 : (c.nr || c.disg ? 15 : 12.5) - Math.min(1.5, streak * 0.08);
+      cardT = cardMax; asked = false; drawAsk(); deck.innerHTML = '';
       cardEl = el('div', 'mg-rf-card' + (c.demon ? ' demon' : '') + ' enter');
       var det = ''; for (var i = 0; i < c.d.length; i++) det += '<li>' + c.d[i] + '</li>';
       cardEl.innerHTML = '<i class="mg-rf-tape"></i><div class="mg-rf-photo">' + suitorSVG(nCard + (c.n.length), c) + '</div><div class="mg-rf-info"><h3>' + c.n + '</h3><p class="mg-rf-tag">&ldquo;' + c.t + '&rdquo;</p><ul>' + det + '</ul>' +
@@ -620,6 +671,17 @@ window.NG = window.NG || {};
       sl.className = 'mg-rf-stamp s-l ' + (flipped ? 'love' : 'run'); sr.className = 'mg-rf-stamp s-r ' + (flipped ? 'run' : 'love');
     }
 
+    function drawAsk() { askB.lastChild.textContent = 'x' + asks; askB.disabled = asks <= 0 || asked; }
+    function askNana() {
+      if (!ctx.playing || locked || !card || card.demon || asked || asks <= 0 || ended) return;
+      asks--; asked = true; drawAsk(); sfx('select'); cardT = Math.min(cardMax, cardT + 3);
+      cast.react(1, 'smirk', null, 2600);
+      cast.say(1, card.disg ? 'That is not a man. That is paperwork with horns.' : card.nr || pick(card.ok ? NANA_READ_OK : NANA_READ_BAD), 0);
+    }
+    function swapControls() {
+      flipped = true; flipLeft = 8; labels(); if (cardEl) stampText(); banner.textContent = 'DEMON LORD: LEFT = LOVE, RIGHT = RUN'; banner.className = 'mg-rf-banner show warn'; sfx('lose');
+    }
+
     function choose(side) { // 'L' | 'R'
       if (!ctx.playing || locked || !card || ended) return;
       var run = (side === 'L') !== flipped;
@@ -630,14 +692,24 @@ window.NG = window.NG || {};
       locked = true;
       var c = card, el0 = cardEl, good, i;
       if (c.demon) {
-        showToast('Controls swap for 8s. Left = ' + 'LOVE, Right = RUN.', false);
-        flipped = true; flipLeft = 8; labels(); banner.textContent = 'DEMON LORD: LEFT = LOVE, RIGHT = RUN'; banner.className = 'mg-rf-banner show warn'; sfx('lose');
-        nextDemon = elapsed + rr(16, 22);
+        showToast('Controls swap for 8s. Left = LOVE, Right = RUN.', false);
+        swapControls();
+        nextDemon = elapsed + rr(20, 26);
+      } else if (c.disg) {
+        nextDemon = elapsed + rr(20, 26);
+        if (ch === 'run') {
+          caughtDemon++; streak++; correct++; best = Math.max(best, streak); var dp = asked ? 60 : 120; score += dp;
+          showToast('CAUGHT HIM! The Demon Lord in a hat!  +' + dp, false); sfx('cheer');
+          cast.react(0, 'angry', 'I KNEW IT. I have ALWAYS known it. Write this down.', 2400);
+        } else {
+          streak = 0; showToast((ch === null ? 'Too slow. ' : 'You loved the Demon Lord. ') + c.w, true);
+          swapControls(); cast.react(0, 'shock', 'He seemed so NORMAL!', 2200);
+        }
       } else {
         good = ch !== null && ((ch === 'run' && !c.ok) || (ch === 'love' && c.ok)); lastBad = !good;
         if (good) {
           streak++; correct++; best = Math.max(best, streak);
-          var pts = 10 * (1 + Math.floor(streak / 4)) + (c.ok ? 30 : 0); score += pts; if (c.ok) decentGot++;
+          var pts = 10 * (1 + Math.floor(streak / 4)) + (c.ok ? 30 : 0) + (c.nr ? 25 : 0); if (asked) pts = Math.ceil(pts / 2); score += pts; if (c.ok) decentGot++;
           showToast((c.ok ? pick(PRAISE_LOVE) : pick(PRAISE_RUN)) + '  +' + pts, false); sfx(c.ok ? 'perfect' : 'good');
           if (STREAK_CALL[streak]) { cast.react(1, 'smirk', pick(['Huh. You do have eyes, Hachi.', 'Not bad. Keep your head.', 'Look at you, learning.', 'Who are you and where is Hachi?']), 1800); if (streak >= 10) cast.react(0, 'smirk', null, 2000); banner.textContent = STREAK_CALL[streak] + '!'; banner.className = 'mg-rf-banner show good'; banner.__t = 1.4; }
         } else {
@@ -661,10 +733,10 @@ window.NG = window.NG || {};
     function endGame(why) {
       if (ended) return; ended = true; locked = true;
       ctx.later(function () {
-        var stars = correct >= 15 ? 3 : correct >= 10 ? 2 : correct >= 6 ? 1 : 0;
+        score += asks * 40; var stars = score >= 800 ? 3 : score >= 380 ? 2 : score >= 150 ? 1 : 0;
         var out = (why === 'heartbroken') ? 'Three heartbreaks. Hachi retires to a sofa with ice cream.' : 'Time! Hachi has been in love ' + nCard + ' times today. A personal record.';
         ctx.finish({ title: 'Radar report', score: score, stars: stars, effects: { harmony: stars, bond: stars },
-          html: '<div class="mg-stats"><span>Correct <b>' + correct + '</b></span><span>Best streak <b>' + best + '</b></span><span>Decent guys <b>' + decentGot + '/' + decentSeen + '</b></span></div><p class="mg-p">' + out + '</p>' });
+          html: '<div class="mg-stats"><span>Correct <b>' + correct + '</b></span><span>Best streak <b>' + best + '</b></span><span>Decent guys <b>' + decentGot + '/' + decentSeen + '</b></span><span>Demons unmasked <b>' + caughtDemon + '</b></span></div><p class="mg-p">' + out + '</p>' });
       }, 900);
     }
 
@@ -674,9 +746,11 @@ window.NG = window.NG || {};
       var k = e.key;
       if (k === 'ArrowLeft' || k === 'a' || k === 'A') { choose('L'); if (ctx.playing) e.preventDefault(); }
       else if (k === 'ArrowRight' || k === 'd' || k === 'D') { choose('R'); if (ctx.playing) e.preventDefault(); }
+      else if (k === 'ArrowUp' || k === 'w' || k === 'W') { askNana(); if (ctx.playing) e.preventDefault(); }
     });
     ctx.on(btnL, 'click', function () { choose('L'); });
     ctx.on(btnR, 'click', function () { choose('R'); });
+    ctx.on(askB, 'click', askNana);
     ctx.on(deck, 'pointerdown', function (e) {
       if (!ctx.playing || locked || !cardEl) return;
       drag = { x: e.clientX, id: e.pointerId, dx: 0 };
@@ -730,7 +804,7 @@ window.NG = window.NG || {};
   /* =====================================================================
      3. SCANDAL RUN
      ===================================================================== */
-  var SC_ROUNDS = [['Backstreet Shuffle', 'Reach the taxi. Hide behind things.'], ['Konbini Crossing', 'More cameras. Same eyebrows.'], ['Neon Gauntlet', 'They brought tripods. Tripods!'], ['Flash Alley Finale', 'Last block. Do not wave.']];
+  var SC_ROUNDS = [['Backstreet Shuffle', 'Reach the taxi. Grab the demo CD if you dare.'], ['Konbini Crossing', 'More cameras. Same eyebrows.'], ['Neon Gauntlet', 'A scooter reporter. Lose him in an alley.'], ['Flash Alley Finale', 'Last block. Do not wave.']];
   var HEAD_ZERO = [
     'GHOST OF SHIBUYA: Rock Singer Crosses Entire City, Nobody Notices',
     'ZERO PHOTOS! Is Nana a Myth? Experts Say "Probably in a Hoodie"',
@@ -774,6 +848,7 @@ window.NG = window.NG || {};
   var SUB_ALLEY = ['Alley cat confirms she owes it a snack.', 'Dark alley described as "very dark, very alley".', 'Local bin: "Nobody asked me, but she was polite."'];
   var SUB_MISS = ['Taxi driver: "She waved, then ran like the meter was a monster."', 'Missed taxi blamed on "an exceptionally long crosswalk".'];
   var SUB_FAST = ['Record dash leaves cameras holding a jacket-shaped breeze.', 'Speed-walking expert: "That was not walking."'];
+  var SUB_CD = ['Demo CD recovered from the scene; band declines to explain why it was ever there.', 'Unreleased BLAST demo vanishes from street, says nobody we can find.'];
   var SUB_ANY = ['Insiders say she regrets nothing and everything, equally.', 'Our reporter has questions. Mostly "why".', 'Sources close to the lamp post decline to comment.'];
   var TEASE = ['Is Hachi\'s cake a cake? Experts disagree, p.4', 'Horoscope: cancel plans. Unless plans are ramen.', 'Local man yells at pigeon, pigeon wins, p.9', 'Ten tips for hiding in plain sight (wear a hat)', 'Vending machine of the year: finalists, p.12', 'Concert review: loud, and also loud, p.7', 'Crossword: 3 letters, "taxi", starts with T', 'Lost: one boot. Found: opinions.'];
 
@@ -785,7 +860,7 @@ window.NG = window.NG || {};
     var round = 0, photos = 0, cleared = 0, missed = 0, disguises = 0, coverT = 0, alleyT = 0, totalT = 0, roundT = 0, tAnim = 0;
     var charge = 0, grace = 0, invis = 0, invisKind = '', shake = 0, flash = 0, soft = 0, hidden = false, drag = null;
     var keys = {}, sees = 0, stamp = 0;
-    var ROUND_CAP = 13, mad = 0, happyT = 0;
+    var ROUND_CAP = 24, mad = 0, happyT = 0, cds = 0;
     var cast = ctx.cast(ctx.stage, ['nana', 'hachi'], 'mg-corner'); cast.base(0, 'neutral'); cast.base(1, 'happy');
     var PHONE = ['(on the phone) Go go go!', '(on the phone) The taxi is right there!', '(on the phone) Flash on the left! LEFT!', '(on the phone) You look amazing. Now run.', '(on the phone) Hide behind the vending machine!'];
 
@@ -867,6 +942,14 @@ window.NG = window.NG || {};
       }
       // disguises
       for (i = 0; i < 2; i++) { var ic = place(20, 20, true); if (ic) gen.items.push({ u: ic.u + 10, v: ic.v + 10, kind: i % 2 ? 'hood' : 'shades', got: false }); }
+      // the risky pickup: a dropped demo CD, right where a camera is pointing
+      var bait = pick(gen.papas), cd = null;
+      for (i = 0; i < 40 && !cd; i++) {
+        var tu = bait.u + rr(-70, 70), tv = bait.v + (bait.a0 > 0 ? 1 : -1) * rr(60, 120), probe = { u: tu - 10, v: tv - 10, w: 20, h: 20 };
+        if (gen.walls.every(function (q) { return !hitRect(probe, q, 12); })) cd = { u: tu, v: tv, kind: 'cd', got: false };
+      }
+      if (cd) gen.items.push(cd);
+      if (r >= 2) gen.hound = { u: 420, v: 240, u0: 420, v0: 240, r: 12, range: 68, seen: false };
       L = gen; L.npcs.forEach(function (n) { n.u = n.cu + Math.cos(n.a) * n.orb; n.v = n.cv + Math.sin(n.a) * n.orb; });
       bake(r);
     }
@@ -902,7 +985,7 @@ window.NG = window.NG || {};
 
     function startRound() {
       genLevel(round); P.u = 34; P.v = 240; P.a = 0; charge = 0; grace = 0.8; roundT = 0; invis = 0;
-      phase = 'intro'; introT = 1.5; sfx('page'); cast.say(1, pick(PHONE), 2600);
+      phase = 'intro'; introT = 1.5; sfx('page'); if (L.hound) cast.say(0, 'A reporter on a scooter. Lose him in an alley.', 2600); else cast.say(1, pick(PHONE), 2600);
     }
 
     /* ----- input ----- */
@@ -983,7 +1066,9 @@ window.NG = window.NG || {};
       for (i = 0; i < L.items.length; i++) {
         var it = L.items[i];
         if (!it.got && Math.hypot(P.u - it.u, P.v - it.v) < 20) {
-          it.got = true; cast.say(0, it.kind === 'hood' ? 'Hood up. Nobody looks at hoods.' : 'Sunglasses. At night. Obviously.', 1900); disguises++; invis = it.kind === 'hood' ? 4.5 : 5.5; invisKind = it.kind; sfx('chime');
+          it.got = true;
+          if (it.kind === 'cd') { cds++; sfx('perfect'); popup(P.u, P.v, 'DEMO SAVED!', C.gold, 22); spark(it.u, it.v, 14, [C.gold, '#fff'], { shape: 'star', min: 60, max: 200, g: 200 }); cast.say(0, 'Shin left this in a gutter. Naturally.', 1900); continue; }
+          cast.say(0, it.kind === 'hood' ? 'Hood up. Nobody looks at hoods.' : 'Sunglasses. At night. Obviously.', 1900); disguises++; invis = it.kind === 'hood' ? 4.5 : 5.5; invisKind = it.kind; sfx('chime');
           popup(P.u, P.v, it.kind === 'hood' ? 'HOOD UP. MYSTERY +10' : 'SUNGLASSES. AT NIGHT.', C.pink, 20);
           spark(it.u, it.v, 14, [C.pink, '#fff'], { shape: 'heart', min: 60, max: 200, g: 200 });
         }
@@ -1004,10 +1089,22 @@ window.NG = window.NG || {};
         if (st === 2) covered = true;
         if (st === 1 && !hidden && invis <= 0) { sees++; p.alert = true; }
       }
+      if (L.hound) {
+        var hd = L.hound, hdx = P.u - hd.u, hdy = P.v - hd.v, hdd = Math.hypot(hdx, hdy) || 1;
+        var canSee = !hidden && invis <= 0 && hdd < 300 && !blocked(hd.u, hd.v, P.u, P.v);
+        var tx0 = canSee ? hdx / hdd : (hd.u0 - hd.u), ty0 = canSee ? hdy / hdd : (hd.v0 - hd.v), tm = canSee ? 1 : (Math.hypot(tx0, ty0) || 1);
+        if (canSee || tm > 4) { hd.u += tx0 / tm * 74 * dt; hd.v += ty0 / tm * 74 * dt; }
+        for (i = 0; i < L.walls.length; i++) {
+          var hw = L.walls[i], hnu = clamp(hd.u, hw.u, hw.u + hw.w), hnv = clamp(hd.v, hw.v, hw.v + hw.h), hx0 = hd.u - hnu, hy0 = hd.v - hnv, hdw = Math.hypot(hx0, hy0);
+          if (hdw < hd.r && hdw > 0.001) { hd.u = hnu + hx0 / hdw * hd.r; hd.v = hnv + hy0 / hdw * hd.r; }
+        }
+        hd.seen = canSee && hdd < hd.range;
+        if (hd.seen) sees++;
+      }
       if (covered && !hidden) coverT += dt;
       mad = Math.max(0, mad - dt); happyT = Math.max(0, happyT - dt);
       cast.set(0, sees ? 'shock' : mad > 0 ? 'angry' : happyT > 0 ? 'happy' : invis > 0 ? 'smirk' : 'neutral'); cast.set(1, mad > 0 || sees ? 'shock' : 'happy');
-      if (sees && grace <= 0) { charge += dt / 0.6; if (charge >= 1) takePhoto(); }
+      if (sees && grace <= 0) { charge += dt / 0.85; if (charge >= 1) takePhoto(); }
       else charge = Math.max(0, charge - dt * 1.4);
 
       // taxi / time
@@ -1025,17 +1122,18 @@ window.NG = window.NG || {};
       if (coverT > 1.5) subs.push(pick(SUB_COVER));
       if (alleyT > 1.5) subs.push(pick(SUB_ALLEY));
       if (missed > 0) subs.push(pick(SUB_MISS));
+      if (cds > 0) subs.push(pick(SUB_CD));
       if (cleared === 4 && totalT < 38) subs.push(pick(SUB_FAST));
       subs = shuffle(subs).slice(0, 2); if (!subs.length) subs.push(pick(SUB_ANY));
       var tz = shuffle(TEASE).slice(0, 3);
-      var stars = photos === 0 ? 3 : photos <= 2 ? 2 : photos <= 5 ? 1 : 0;
+      var stars = photos === 0 || (photos === 1 && cds >= 2) ? 3 : photos <= 3 ? 2 : photos <= 7 ? 1 : 0;
       if (cleared < 4) stars = Math.max(0, stars - 1);
-      var score = Math.max(0, cleared * 200 - photos * 35 + disguises * 25 + Math.max(0, Math.round(60 - totalT)));
+      var score = Math.max(0, cleared * 200 - photos * 35 + disguises * 25 + cds * 80 + Math.max(0, Math.round(60 - totalT)));
       var html = '<div class="mg-paper"><div class="mg-paper-mast">THE MIDNIGHT SCANDAL-GRAM</div><div class="mg-paper-meta">LATE EDITION &middot; 100 YEN (OR LESS) &middot; TRUTH-ISH</div>' +
         '<h3 class="mg-paper-h">' + main + '</h3>' +
         '<div class="mg-paper-photo"><span class="mg-paper-fig"><i></i><b></b></span><span class="mg-paper-burst">' + photos + '<small>PHOTO' + (photos === 1 ? '' : 'S') + '</small></span><em>EXHIBIT A: A person. Probably.</em></div>' +
         '<p class="mg-paper-sub">' + subs.join(' ') + '</p><div class="mg-paper-tease"><span>' + tz.join('</span><span>') + '</span></div></div>';
-      ctx.finish({ title: 'Tomorrow\'s front page', cls: 'mg-wide', score: score, stars: stars, effects: { scandal: photos, fame: photos >= 4 ? 2 : photos >= 1 ? 1 : 0 }, headline: main, html: html,
+      ctx.finish({ title: 'Tomorrow\'s front page', cls: 'mg-wide', score: score, stars: stars, effects: { scandal: Math.min(photos, 6), fame: photos >= 4 ? 2 : photos >= 1 ? 1 : 0 }, headline: main, html: html,
         line: pick([
           ['You were the entire front page. Nana asks the driver to go faster and not look at the radio.', 'Total exposure. Somewhere a printer is on fire.'],
           ['The tabloids got their breakfast. Nana got a taxi. Everyone is slightly unhappy.', 'Photographed, but with attitude. Attitude sells.'],
@@ -1106,7 +1204,8 @@ window.NG = window.NG || {};
         var it = L.items[i]; if (it.got) continue;
         var bob = Math.sin(tAnim * 3 + i) * 2;
         g.fillStyle = 'rgba(255,255,255,0.12)'; g.beginPath(); g.arc(it.u, it.v + bob, 14, 0, 6.283); g.fill();
-        if (it.kind === 'hood') { g.fillStyle = '#6b6b78'; g.beginPath(); g.arc(it.u, it.v + bob, 8, Math.PI, 0); g.lineTo(it.u + 8, it.v + bob + 7); g.lineTo(it.u - 8, it.v + bob + 7); g.closePath(); g.fill(); g.strokeStyle = C.ink; g.lineWidth = 1.5; g.stroke(); }
+        if (it.kind === 'cd') { g.fillStyle = '#d9d4de'; g.strokeStyle = C.ink; g.lineWidth = 1.5; g.beginPath(); g.arc(it.u, it.v + bob, 9, 0, 6.283); g.fill(); g.stroke(); g.fillStyle = C.gold; g.beginPath(); g.arc(it.u, it.v + bob, 3, 0, 6.283); g.fill(); g.stroke(); }
+        else if (it.kind === 'hood') { g.fillStyle = '#6b6b78'; g.beginPath(); g.arc(it.u, it.v + bob, 8, Math.PI, 0); g.lineTo(it.u + 8, it.v + bob + 7); g.lineTo(it.u - 8, it.v + bob + 7); g.closePath(); g.fill(); g.strokeStyle = C.ink; g.lineWidth = 1.5; g.stroke(); }
         else { g.fillStyle = C.ink; g.fillRect(it.u - 9, it.v + bob - 4, 8, 6); g.fillRect(it.u + 1, it.v + bob - 4, 8, 6); g.fillRect(it.u - 2, it.v + bob - 3, 4, 2); g.strokeStyle = C.pink; g.lineWidth = 1.5; g.strokeRect(it.u - 9, it.v + bob - 4, 18, 6); }
       }
       // cones
@@ -1122,6 +1221,11 @@ window.NG = window.NG || {};
         g.fillStyle = '#e8c9aa'; g.beginPath(); g.arc(n.u, n.v, 5.4, 0, 6.283); g.fill(); g.stroke();
       }
       drawPlayer();
+      if (L.hound) {
+        var hh0 = L.hound; g.strokeStyle = hh0.seen ? 'rgba(255,64,87,0.75)' : 'rgba(255,246,205,0.3)'; g.lineWidth = 2; g.setLineDash([6, 6]); g.beginPath(); g.arc(hh0.u, hh0.v, hh0.range, 0, 6.283); g.stroke(); g.setLineDash([]);
+        g.fillStyle = '#c1412f'; g.strokeStyle = C.ink; rrect(g, hh0.u - 16, hh0.v - 8, 32, 16, 6); g.fill(); g.stroke();
+        g.fillStyle = '#e8c9aa'; g.beginPath(); g.arc(hh0.u, hh0.v, 6, 0, 6.283); g.fill(); g.stroke(); g.fillStyle = C.ink; g.fillRect(hh0.u - 2, hh0.v - 14, 12, 8);
+      }
       for (i = 0; i < L.papas.length; i++) {
         p = L.papas[i]; g.save(); g.translate(p.u, p.v); g.rotate(p.a);
         g.fillStyle = '#3b3b48'; g.strokeStyle = C.ink; g.lineWidth = 1.6; g.beginPath(); g.ellipse(0, 0, 6, 11, 0, 0, 6.283); g.fill(); g.stroke();
@@ -1175,7 +1279,7 @@ window.NG = window.NG || {};
     var things = [], warns = [];
     var lives = 3, score = 0, streak = 0, best = 0, bounces = 0, got = 0, timeLeft = 70, tt = 0, shake = 0, spawnT = 1.2, guardT = 9, respawnT = 0, ended = false, endT = 0, airBonus = false, hitCups = 0, escorted = 0;
     // Depth: a moving spotlight to steer into, fan requests to complete, and a BLAST ability to earn.
-    var spotX = 0, spotW = 0, hype = 0, blastT = 0, encore = false, perfChain = 0, reqDone = 0, blastFill = -1, blastReady = false;
+    var spotX = 0, spotW = 0, hype = 0, blastT = 0, encore = false, perfChain = 0, reqDone = 0, blastFill = -1, blastReady = false, nobuSaved = false;
     var REQS = shuffle([
       { k: 'rose', n: 2, s: 'Catch 2 roses' }, { k: 'perfect', n: 3, s: '3 clean centre catches in a row' }, { k: 'lights', n: 1, s: 'Big air: touch the stage lights' },
       { k: 'spot', n: 3, s: '3 bounces in the spotlight' }, { k: 'loot', n: 4, s: 'Grab 4 things from the crowd' }, { k: 'stay', n: 8, s: 'Stay up for 8 bounces' }
@@ -1335,7 +1439,12 @@ window.NG = window.NG || {};
         if (ball.vy > 0 && ball.y + r >= handsY && py + r <= handsY + Math.max(8, ball.vy * dt) && Math.abs(ball.x - hx) <= halfW + r * 0.5) {
           bounce(clamp((ball.x - hx) / halfW, -1, 1));
         }
-        if (ball.y > H + r) lose(pick(DROP_SAY));
+        if (ball.y > H + r) {
+          if (!nobuSaved && lives === 1) { // once a gig, Nobu simply refuses to let her hit the floor
+            nobuSaved = true; ball.y = handsY - r; ball.x = clamp(ball.x, r, W - r); ball.vy = -Math.sqrt(2 * G * H * 0.42); ball.vx *= 0.3; ball.inv = 1.4; streak = 0; shake = 8; sfx('cheer');
+            fx.text(W / 2, H * 0.38, 'NOBU DIVED IN!', C.gold, Math.min(32, W / 12), 1.5); cast.react(1, 'shock', 'Nobu just jumped off the STAGE for her!', 2000);
+          } else lose(pick(DROP_SAY));
+        }
         if (Math.random() < dt * 40) fx.burst(ball.x, ball.y, 1, [C.pink], { min: 4, max: 20, g: 0, life: 0.5, shape: 'circ', size: 0.8 });
       } else if (!ended) {
         respawnT -= dt; if (respawnT <= 0) spawnBall(false);
@@ -1521,20 +1630,26 @@ window.NG = window.NG || {};
       pins +
       '<circle cx="110" cy="213" r="8" fill="#0d0b0c"/><path d="M106 213 h8 l3 14 h-14z" fill="#0d0b0c"/>' +
       '</svg><div class="mg-pl-side r"></div></div>' +
-      '<div class="mg-pl-slips"></div>' +
+      '<div class="mg-pl-tools"><div class="mg-pl-slips"></div><button type="button" class="mg-pl-hum" tabindex="-1"></button></div>' +
       '<div class="mg-pl-pads">' + pads + '</div>' +
       '<div class="mg-pl-hint">D F J K &middot; arrow keys &middot; or tap</div>');
     ctx.stage.appendChild(root);
-    var statusEl = root.querySelector('.mg-pl-status'), slipsEl = root.querySelector('.mg-pl-slips');
+    var statusEl = root.querySelector('.mg-pl-status'), slipsEl = root.querySelector('.mg-pl-slips'), humB = root.querySelector('.mg-pl-hum');
     var padEls = root.querySelectorAll('.mg-pl-pad'), pinEls = root.querySelectorAll('.mg-pl-pin'), lockEl = root.querySelector('.mg-pl-lock');
 
     var castL = ctx.cast(root.querySelector('.mg-pl-side.l'), ['ren'], 'mg-cast-side'), castR = ctx.cast(root.querySelector('.mg-pl-side.r'), ['nana'], 'mg-cast-side');
     castL.base(0, 'neutral'); castR.base(0, 'neutral');
     var REN_OK = ['Yes. That one.', 'Steady.', 'You have the hands for it.'], NANA_OK = ['Oh, nice.', 'Do not blink.', 'Keep going, keep going.'];
     var seq = [], pos = 0, state = 'idle', cleared = 0, mistakes = 0, lightT = [0, 0, 0, 0], opened = false;
+    // Later tumblers change the rules: backwards, and a ghost note you must remember from the round before. Hums replay the pattern.
+    var MODE = ['', '', '', 'rev', '', 'ghost', 'rev', 'ghost'], MAXSLIP = 3, hums = 2, mode = '', ghostAt = -1, modeClears = 0, showGhost = false;
 
     function setStatus(s) { statusEl.innerHTML = s; }
-    function slips() { slipsEl.innerHTML = 'SLIPS <span class="' + (mistakes > 0 ? 'x' : '') + '">&#9679;</span><span class="' + (mistakes > 1 ? 'x' : '') + '">&#9679;</span>'; }
+    function slips() {
+      var h = 'SLIPS'; for (var k = 0; k < MAXSLIP; k++) h += ' <span class="' + (mistakes > k ? 'x' : '') + '">&#9679;</span>';
+      slipsEl.innerHTML = h; humB.textContent = 'HUM IT AGAIN x' + hums; humB.disabled = hums <= 0 || state !== 'input';
+      ctx.setScore('TUMBLER <b>' + Math.min(TOTAL, cleared + 1) + '/' + TOTAL + '</b> &middot; SLIPS <b>' + mistakes + '/' + MAXSLIP + '</b>');
+    }
     function note() {
       var l, n = 0;
       do { l = Math.floor(Math.random() * 4); n++; } while (n < 8 && seq.length >= 2 && seq[seq.length - 1] === l && seq[seq.length - 2] === l);
@@ -1544,30 +1659,32 @@ window.NG = window.NG || {};
       padEls[l].classList.add('lit'); clearTimeout(lightT[l]);
       lightT[l] = ctx.later(function () { padEls[l].classList.remove('lit'); }, ms);
     }
-    function step() { return Math.max(300, 580 - cleared * 36) * (ctx.reduce ? 1.0 : 1); }
+    function step() { return Math.max(440, 660 - cleared * 28); }
 
     function playback() {
-      state = 'show'; setStatus('Listen&hellip;');
-      var st = step(); if (ctx.reduce) st = Math.max(st, 440);
-      var idx = 0;
+      state = 'show'; mode = MODE[cleared] || ''; slips();
+      ghostAt = mode === 'ghost' && !showGhost && seq.length > 1 ? Math.floor(Math.random() * (seq.length - 1)) : -1;
+      setStatus(mode === 'rev' ? 'Listen&hellip; then play it <b>backwards</b>.' : ghostAt >= 0 ? 'Listen&hellip; one note is <b>silent</b>. You know it.' : 'Listen&hellip;');
+      var st = step(), idx = 0; showGhost = false;
       (function next() {
-        if (idx >= seq.length) { ctx.later(function () { state = 'input'; pos = 0; setStatus('Your turn &middot; ' + seq.length + ' tumblers'); }, st * 0.5); return; }
-        var l = seq[idx++]; light(l, st * 0.68); tone(l, st * 0.0009);
-        ctx.later(next, st);
+        if (idx >= seq.length) { ctx.later(function () { state = 'input'; pos = 0; slips(); setStatus((mode === 'rev' ? 'Backwards now' : 'Your turn') + ' &middot; ' + seq.length + ' tumblers'); }, st * 0.5); return; }
+        var l = seq[idx];
+        if (idx !== ghostAt) { light(l, st * 0.68); tone(l, st * 0.0009); }
+        idx++; ctx.later(next, st);
       })();
     }
 
     function press(l) {
       if (state !== 'input') return;
       light(l, 170); tone(l, 0.28);
-      if (l === seq[pos]) {
+      if (l === (mode === 'rev' ? seq[seq.length - 1 - pos] : seq[pos])) {
         pos++;
         if (pos >= seq.length) cleared_();
       } else mistake();
     }
 
     function cleared_() {
-      state = 'busy'; cleared++;
+      state = 'busy'; cleared++; if (mode) modeClears++; slips();
       if (pinEls[cleared - 1]) pinEls[cleared - 1].classList.add('on');
       castL.react(0, 'smirk', Math.random() < 0.5 ? pick(REN_OK) : null, 1700); castR.react(0, 'smirk', Math.random() < 0.5 ? pick(NANA_OK) : null, 1700);
       sfx('perfect'); setStatus('Click. Tumbler ' + cleared + ' of ' + TOTAL + ' set.');
@@ -1578,12 +1695,12 @@ window.NG = window.NG || {};
     function mistake() {
       mistakes++; state = 'busy'; sfx('miss'); slips(); castL.react(0, 'sad', 'Careful.', 1800); castR.react(0, 'shock', null, 1800);
       lockEl.classList.remove('mg-rattle'); void lockEl.getBoundingClientRect(); lockEl.classList.add('mg-rattle');
-      if (mistakes >= 2) {
+      if (mistakes >= MAXSLIP) {
         state = 'end'; setStatus('The lock stays shut.'); castL.base(0, 'sad'); castR.base(0, 'sad'); castL.say(0, 'Next time.', 2500);
         ctx.later(function () { sfx('lose'); }, 300);
         ctx.later(finishNow, 2000);
       } else {
-        setStatus('Wrong tumbler. Listen again.'); ctx.later(playback, 1300);
+        setStatus('Wrong tumbler. Listen again.'); showGhost = true; ctx.later(playback, 1300);
       }
     }
 
@@ -1599,17 +1716,23 @@ window.NG = window.NG || {};
       ctx.later(finishNow, 6200);
     }
 
+    function hum() {
+      if (state !== 'input' || hums <= 0) return;
+      hums--; showGhost = true; sfx('select'); castR.react(0, 'neutral', 'Fine. Once more. Pay attention.', 1700); playback();
+    }
+    ctx.on(humB, 'pointerdown', function (e) { e.preventDefault(); hum(); });
+
     function finishNow() {
-      var stars = opened ? 3 : cleared >= 6 ? 2 : cleared >= 3 ? 1 : 0;
-      var score = cleared * 125 + (opened && mistakes === 0 ? 150 : 0);
+      var stars = opened ? (mistakes <= 1 ? 3 : 2) : cleared >= 6 ? 2 : cleared >= 3 ? 1 : 0;
+      var score = cleared * 125 + modeClears * 60 + hums * 40 + (opened && mistakes === 0 ? 150 : 0);
       var lines = [
         ['The lock stays shut. It has had practice. It is patient.', 'Silence from the tumblers. The padlock is not angry, just disappointed in a very gentle way.'],
         ['A few tumblers give way. The rest keep their secrets, and their grudges.', 'Some pins fall. The lock hums something low and rude.'],
         ['So close that the padlock exhales. It wanted you to get there.', 'Nearly. The last tumblers were holding their breath too.'],
         ['It opens. Nobody says anything, which is exactly the point.', 'Click. And somewhere a small silver weight leaves your chest.']
       ];
-      ctx.finish({ title: opened ? 'Unlocked' : 'Still locked', score: score, stars: stars, effects: { bond: stars }, line: pick(lines[stars]),
-        html: '<div class="mg-stats"><span>Tumblers <b>' + cleared + '/' + TOTAL + '</b></span><span>Slips <b>' + mistakes + '/2</b></span></div>' });
+      ctx.finish({ title: opened ? 'Unlocked' : 'Still locked', score: score, stars: stars, effects: { bond: stars }, line: pick(lines[opened ? 3 : stars]),
+        html: '<div class="mg-stats"><span>Tumblers <b>' + cleared + '/' + TOTAL + '</b></span><span>Slips <b>' + mistakes + '/' + MAXSLIP + '</b></span><span>Hums left <b>' + hums + '</b></span></div>' });
     }
 
     for (i = 0; i < padEls.length; i++) (function (pe) {
@@ -1619,6 +1742,7 @@ window.NG = window.NG || {};
       if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
       var k = e.key.toLowerCase();
       if (MAP[k] !== undefined) { if (ctx.playing) e.preventDefault(); press(MAP[k]); }
+      else if (k === ' ' || k === 'h') { if (ctx.playing) e.preventDefault(); hum(); }
     });
 
     slips();
@@ -1641,36 +1765,37 @@ window.NG = window.NG || {};
   var HACHI_PANIC = ['Is it that one? It is that one!', 'Do not blink. Nobody blink!', 'My eyes are doing a spin cycle.', 'It went under the... the... hat!', 'I trusted the middle one. I always trust the middle one.'];
 
   function cups(ctx) {
-    var root = el('div', 'mg-cups', '<div class="mg-strip"></div><div class="mg-cups-field"></div><div class="mg-cups-msg">&nbsp;</div>');
+    var root = el('div', 'mg-cups', '<div class="mg-strip"></div><div class="mg-cups-field"></div><div class="mg-cups-offer" hidden></div><div class="mg-cups-msg">&nbsp;</div>');
     ctx.stage.appendChild(root);
-    var field = root.children[1], msg = root.children[2];
+    var field = root.children[1], offerEl = root.children[2], msg = root.children[3];
     var cast = ctx.cast(root.children[0], ['hachi', 'demon'], 'mg-cast-strip'); cast.base(0, 'happy'); cast.base(1, 'smirk');
-    var lives = 3, round = 0, cleared = 0, score = 0, streak = 0, phase = 'idle', hats = [], glassHat = null, ROUNDS = 7;
+    // Depth: every win goes into a pot you either bank or let ride, and late rounds hide two glasses.
+    var lives = 3, round = 0, cleared = 0, banked = 0, pot = 0, ride = false, streak = 0, phase = 'idle', hats = [], glasses = [], found = 0, ROUNDS = 7, rides = 0;
 
     function pos(slot, n) { return ((slot + 0.5) / n * 100) + '%'; }
-    function hud() { ctx.setScore('ROUND <b>' + Math.min(ROUNDS, cleared + 1) + '/' + ROUNDS + '</b> &middot; ' + new Array(lives + 1).join('&hearts;') + ' &middot; <b>' + score + '</b>'); }
+    function hud() { ctx.setScore('ROUND <b>' + Math.min(ROUNDS, cleared + 1) + '/' + ROUNDS + '</b> &middot; ' + new Array(lives + 1).join('&hearts;') + ' &middot; BANK <b>' + banked + '</b> &middot; POT <b>' + pot + '</b>'); }
     function say(t) { msg.textContent = t; }
 
     function startRound() {
-      var n = round < 3 ? 3 : round < 5 ? 4 : 5; field.innerHTML = ''; hats = [];
+      var n = round < 3 ? 3 : round < 5 ? 4 : 5, two = round >= 4 && round % 2 === 0; field.innerHTML = ''; hats = []; found = 0;
       field.style.setProperty('--n', n);
       for (var i = 0; i < n; i++) {
         var b = el('button', 'mg-hat', '<span class="mg-glass">' + GLASS_SVG + '</span><span class="mg-hat-top"><i class="brim"></i><i class="crown"></i><i class="band"></i></span>');
         b.type = 'button'; b.tabIndex = -1; b.setAttribute('aria-label', 'Hat ' + (i + 1)); b.style.left = pos(i, n);
-        field.appendChild(b); hats.push({ el: b, slot: i });
+        field.appendChild(b); hats.push({ el: b, slot: i, ok: false });
       }
-      glassHat = hats[Math.floor(Math.random() * n)]; glassHat.el.classList.add('has');
-      phase = 'show'; hud(); say('Watch the strawberry glass...');
-      cast.react(0, 'happy', pick(['Ooh, it is so pretty!', 'I see it! I SEE IT!']), 1600); cast.react(1, 'smirk', null, 2000);
-      ctx.later(function () { glassHat.el.classList.add('up'); sfx('chime'); }, 450);
-      ctx.later(function () { glassHat.el.classList.remove('up'); }, 1700);
-      ctx.later(function () { phase = 'shuffle'; say('Shuffling...'); cast.set(0, 'shock'); doSwap(0, Math.min(14, 3 + round * 2), n); }, 2200);
+      glasses = shuffle(hats).slice(0, two ? 2 : 1); glasses.forEach(function (h) { h.ok = true; h.el.classList.add('has'); });
+      phase = 'show'; hud(); say(two ? 'TWO glasses this time. Watch both.' : ride ? 'Riding the pot. Watch the glass...' : 'Watch the strawberry glass...');
+      cast.react(0, 'happy', two ? 'He has a SECOND one? Where is he GETTING these?' : pick(['Ooh, it is so pretty!', 'I see it! I SEE IT!']), 1800); cast.react(1, 'smirk', null, 2000);
+      ctx.later(function () { glasses.forEach(function (h) { h.el.classList.add('up'); }); sfx('chime'); }, 450);
+      ctx.later(function () { glasses.forEach(function (h) { h.el.classList.remove('up'); }); }, two ? 2300 : 1900);
+      ctx.later(function () { phase = 'shuffle'; say('Shuffling...'); cast.set(0, 'shock'); doSwap(0, Math.min(10, 3 + Math.round(round * 1.2)), n); }, two ? 2800 : 2400);
     }
 
     function doSwap(k, total, n) {
       if (phase !== 'shuffle') return;
-      if (k >= total) { phase = 'pick'; say('Which hat? Tap it!'); cast.react(0, 'shock', 'Which one?! WHICH ONE?!', 2200); sfx('click'); return; }
-      var tms = Math.max(170, 520 - round * 48);
+      if (k >= total) { phase = 'pick'; say(glasses.length > 1 ? 'Find BOTH glasses. Tap two hats.' : 'Which hat? Tap it!'); cast.react(0, 'shock', 'Which one?! WHICH ONE?!', 2200); sfx('click'); return; }
+      var tms = Math.max(340, 560 - round * 34);
       field.style.setProperty('--t', tms + 'ms');
       var ai = Math.floor(Math.random() * n), bi; do { bi = Math.floor(Math.random() * n); } while (bi === ai);
       var a = hats[ai], b = hats[bi], tmp = a.slot; a.slot = b.slot; b.slot = tmp;
@@ -1679,34 +1804,59 @@ window.NG = window.NG || {};
       ctx.later(function () { a.el.classList.remove('hi'); b.el.classList.remove('lo'); }, tms);
       var extra = 0;
       if (round >= 3 && k === 2 + (round % 3)) {
-        var fake = hats.filter(function (h) { return h !== glassHat; })[0];
+        var fake = hats.filter(function (h) { return !h.ok; })[0];
         ctx.later(function () { if (phase === 'shuffle') { fake.el.classList.add('fake'); cast.react(1, 'smirk', pick(DEMON_FAKE), 1900); ctx.later(function () { fake.el.classList.remove('fake'); }, 420); } }, tms);
         extra = 460;
       } else if (k % 3 === 1) { cast.react(1, 'smirk', pick(DEMON_TAUNT), 1700); cast.react(0, 'shock', Math.random() < 0.5 ? pick(HACHI_PANIC) : null, 1700); }
-      ctx.later(function () { doSwap(k + 1, total, n); }, tms + 70 + extra);
+      ctx.later(function () { doSwap(k + 1, total, n); }, tms + 110 + extra);
     }
+
+    function finishRound() {
+      hud();
+      if (lives <= 0 || cleared >= ROUNDS) { banked += pot; pot = 0; ctx.later(finishNow, 1600); return; }
+      if (pot > 0 && phase === 'won') { ctx.later(offer, 1400); return; }
+      ctx.later(startRound, 1800);
+    }
+    function offer() {
+      phase = 'offer'; say('Pot: ' + pot + '. Bank it, or let it ride for double?');
+      cast.react(1, 'smirk', pick(['Go on. Double it. What is the worst that could happen? I can list them.', 'Bank it, if you are the kind of person who banks things.', 'Your friend says stop. I say your friend has no vision.']), 3200);
+      offerEl.innerHTML = '<button type="button" class="mg-btn" data-a="bank">Bank ' + pot + '</button><button type="button" class="mg-btn mg-ride" data-a="ride">Ride x2</button>';
+      offerEl.hidden = false;
+    }
+    ctx.on(offerEl, 'click', function (e) {
+      var b = e.target.closest && e.target.closest('button'); if (!b || phase !== 'offer') return;
+      offerEl.hidden = true; offerEl.innerHTML = ''; sfx('select');
+      if (b.getAttribute('data-a') === 'bank') { banked += pot; pot = 0; ride = false; cast.react(0, 'happy', 'Safe! In the bank! Where the Demon Lord cannot reach it. Probably.', 2000); }
+      else { ride = true; rides++; cast.react(0, 'shock', 'Why would you DO that? (Do it.)', 1800); }
+      hud(); ctx.later(startRound, 900);
+    });
 
     ctx.on(field, 'pointerdown', function (e) {
       if (phase !== 'pick' || !ctx.playing) return;
       var t = e.target.closest ? e.target.closest('.mg-hat') : null; if (!t) return;
       e.preventDefault();
-      var h = hats.filter(function (x) { return x.el === t; })[0]; if (!h) return;
-      phase = 'result'; glassHat.el.classList.add('up'); h.el.classList.add('up');
-      if (h === glassHat) {
-        cleared++; round++; streak++; score += 100 + streak * 20; sfx('perfect'); say('Found it!');
+      var h = hats.filter(function (x) { return x.el === t; })[0]; if (!h || h.el.classList.contains('up')) return;
+      h.el.classList.add('up');
+      if (h.ok) {
+        found++;
+        if (found < glasses.length) { sfx('good'); say('One! Where is the other one?'); return; }
+        cleared++; round++; streak++; phase = 'won';
+        var pts = (100 + streak * 20) * glasses.length; pot = (ride ? pot * 2 : pot) + pts; ride = false;
+        sfx('perfect'); say('Found it!  +' + pts);
         cast.react(0, 'happy', 'YES! I KNEW IT! (I did not know it.)', 2000); cast.react(1, 'angry', pick(DEMON_WIN), 2000);
       } else {
-        lives--; streak = 0; sfx('miss'); say('Wrong hat.');
+        phase = 'result'; glasses.forEach(function (g2) { g2.el.classList.add('up'); });
+        lives--; streak = 0; sfx('miss');
+        say(ride ? 'Wrong hat. The pot is gone.' : 'Wrong hat.'); if (ride) pot = 0; ride = false;
         cast.react(0, 'sad', 'Oh noooo. The glass!', 2000); cast.react(1, 'smirk', pick(DEMON_LOSE), 2000);
       }
-      hud();
-      ctx.later(function () { if (lives <= 0 || cleared >= ROUNDS) finishNow(); else startRound(); }, 1800);
+      finishRound();
     });
 
     function finishNow() {
-      var stars = cleared >= 7 ? 3 : cleared >= 5 ? 2 : cleared >= 3 ? 1 : 0;
-      ctx.finish({ title: 'Verdict', score: cleared * 100 + lives * 50 + streak * 20, stars: stars, effects: { bond: stars },
-        html: '<div class="mg-stats"><span>Rounds <b>' + cleared + '/' + ROUNDS + '</b></span><span>Lives left <b>' + lives + '</b></span></div>' });
+      var score = banked + lives * 50, stars = score >= 2200 ? 3 : score >= 1100 ? 2 : score >= 350 ? 1 : 0;
+      ctx.finish({ title: 'Verdict', score: score, stars: stars, effects: { bond: stars },
+        html: '<div class="mg-stats"><span>Rounds <b>' + cleared + '/' + ROUNDS + '</b></span><span>Banked <b>' + banked + '</b></span><span>Rides <b>' + rides + '</b></span><span>Lives left <b>' + lives + '</b></span></div>' });
     }
 
     return { begin: function () { hud(); startRound(); }, destroy: function () { phase = 'idle'; } };
@@ -1752,15 +1902,26 @@ window.NG = window.NG || {};
       { n: 'Dark sunglasses', v: 'serious', t: ['serious', 'edgy', 'casual'], d: '<rect x="45" y="22" width="13" height="8" rx="3" fill="#0d0b0c"/><rect x="62" y="22" width="13" height="8" rx="3" fill="#0d0b0c"/><path d="M58 25 h4" stroke="#0d0b0c" stroke-width="2"/>' }
     ]
   };
+  var FIT_PRICE = { 'Pirate shirt': 4, 'Corset top': 3, 'Frilly blouse': 2, 'Safety-pin tee': 1, 'Strawberry cardigan': 2, 'Courtroom blazer': 5, 'Pre-scuffed leather jacket': 5,
+    'Tartan bondage trousers': 4, 'Tutu skirt': 2, 'Tailored trousers': 4, 'Ripped jeans': 1, 'Gingham mini skirt': 2,
+    'Rocking-horse platforms': 5, 'Combat boots': 3, 'Bow Mary Janes': 2, 'Polished loafers': 4, 'Tired sneakers': 1,
+    'Armour-style ring': 3, 'Orb-style pendant (original design)': 5, 'Pearl choker': 3, 'Strawberry hair clip': 1, 'Studded belt': 2, 'Dark sunglasses': 2 };
   var FIT_BRIEFS = [
-    { who: 'nana', say: 'Stage tonight. I want to look dangerous.', want: ['edgy', 'dramatic'] },
-    { who: 'hachi', say: 'It is a first date, but I do not want to look like I tried!', want: ['sweet', 'casual'] },
-    { who: 'yasu', say: 'Court appearance. Do not ask.', want: ['formal', 'serious'] },
-    { who: 'nobu', say: 'My parents are hosting people. Make me look like I own an iron.', want: ['formal', 'sweet'] },
-    { who: 'shin', say: 'Photoshoot. They want mystery. I have been told I have mystery.', want: ['edgy', 'romantic'] },
-    { who: 'reira', say: 'A press event. Elegant. Make the cameras apologise.', want: ['formal', 'dramatic'] },
-    { who: 'takumi', say: 'I need to look rich but humble. Rich-humble.', want: ['formal', 'casual'] },
-    { who: 'hachi', say: 'Meeting Nana\'s friends! Cute but not scary. Cute but a LITTLE scary!', want: ['sweet', 'punk'] }
+    { who: 'nana', say: 'Stage tonight. I want to look dangerous. Nothing cute.', want: ['edgy', 'dramatic'], no: 'sweet', budget: 14, win: 'Good. Now I look like a warning.', nope: 'Who put a bow on this. Who did this to me.' },
+    { who: 'hachi', say: 'First date, but I do not want to look like I tried! Nothing scary!', want: ['sweet', 'casual'], no: 'punk', budget: 8, win: 'I look like I woke up cute! By accident! On purpose!', nope: 'The Demon Lord dressed me. I can tell.' },
+    { who: 'yasu', say: 'Court appearance. Do not ask. Nothing that sparkles at a judge.', want: ['formal', 'serious'], no: 'dramatic', budget: 15, win: 'Adequate. I will be out by lunch.', nope: 'The judge will have questions. So do I.' },
+    { who: 'nobu', say: 'My parents are hosting people! Make me look like I own an iron!', want: ['formal', 'sweet'], no: 'punk', budget: 13, win: 'I look so respectable! I could CRY! Mum might not recognise me!', nope: 'My mother will think this is a phase. She will be right.' },
+    { who: 'shin', say: 'Photoshoot. They want mystery. I have been told I have mystery.', want: ['edgy', 'serious'], no: 'sweet', budget: 12, win: 'Fine. I look like I know something.', nope: 'No. I would like my mystery back.' },
+    { who: 'reira', say: 'A press event. Elegant. Make the cameras apologise.', want: ['formal', 'dramatic'], no: 'casual', budget: 16, win: 'They will not know where to look. Thank you.', nope: 'Sneakers. To a press event. All right.' },
+    { who: 'takumi', say: 'I need to look rich but humble. Rich-humble.', want: ['formal', 'casual'], no: 'sweet', budget: 12, win: 'Expensive, and I look sorry about it. Perfect.', nope: 'A frill. On me. Who do you work for.' }
+  ];
+  var FIT_TWISTS = [
+    { who: 'nobu', say: 'Good news! Nothing formal! My cousin booked a surprise picnic.', want: ['casual', 'sweet'], no: 'serious', budget: 10, win: 'Everyone said I looked like a nice boy!', nope: 'Sir, this is a picnic.',
+      twist: { say: 'UPDATE! The picnic is now a funeral! Nobody is dead! It is a long story!', want: ['formal', 'serious'], no: 'sweet', budget: 15 } },
+    { who: 'hachi', say: 'Karaoke with the girls! Cute cute cute!', want: ['sweet', 'romantic'], no: 'punk', budget: 9, win: 'I am the cutest person who has ever cried at karaoke!', nope: 'Why do I look like I am about to fight a bus?',
+      twist: { say: 'WAIT. Nana\'s band is coming. Change everything! Make me look cool!!', want: ['edgy', 'punk'], no: 'formal', budget: 13 } },
+    { who: 'yasu', say: 'Quiet dinner with an old colleague. Plain is fine.', want: ['casual', 'serious'], no: 'dramatic', budget: 9, win: 'Nobody looked at me once. Ideal.', nope: 'You have given me a personality. Take it back.',
+      twist: { say: 'Correction. The colleague is opposing counsel. I want him to feel it.', want: ['formal', 'edgy'], no: 'casual', budget: 14 } }
   ];
   var FIT_VERDICT = [
     ['I have seen scarecrows with a stronger point of view.', 'That is not an outfit. That is an accident with buttons.', 'Delete it. Burn the receipt.'],
@@ -1771,12 +1932,13 @@ window.NG = window.NG || {};
   var FIT_SLOTS = [['top', 'TOP'], ['bottom', 'BOTTOM'], ['shoes', 'SHOES'], ['acc', 'EXTRA']];
 
   function fitcheck(ctx) {
-    var root = el('div', 'mg-fit', '<div class="mg-strip"></div><div class="mg-fit-main"><div class="mg-doll"></div><div class="mg-fit-panel"><div class="mg-fit-bar"><i></i></div><div class="mg-fit-tabs"></div><div class="mg-fit-grid"></div><button type="button" class="mg-btn mg-fit-done">Done</button></div></div>');
+    var root = el('div', 'mg-fit', '<div class="mg-strip"></div><div class="mg-fit-main"><div class="mg-doll"></div><div class="mg-fit-panel"><div class="mg-fit-bar"><i></i></div><div class="mg-fit-brief"></div><div class="mg-fit-tabs"></div><div class="mg-fit-grid"></div><button type="button" class="mg-btn mg-fit-done">Done</button></div></div>');
     ctx.stage.appendChild(root);
     var q = function (s) { return root.querySelector(s); };
-    var dollEl = q('.mg-doll'), tabsEl = q('.mg-fit-tabs'), gridEl = q('.mg-fit-grid'), barI = q('.mg-fit-bar i'), doneB = q('.mg-fit-done');
+    var dollEl = q('.mg-doll'), tabsEl = q('.mg-fit-tabs'), gridEl = q('.mg-fit-grid'), barI = q('.mg-fit-bar i'), doneB = q('.mg-fit-done'), briefEl = q('.mg-fit-brief');
     var cast = ctx.cast(q('.mg-strip'), ['nana', 'hachi'], 'mg-cast-strip'); cast.base(0, 'neutral'); cast.base(1, 'happy');
-    var briefs = shuffle(FIT_BRIEFS).slice(0, 3), bi = 0, sel = {}, tab = 'top', T = 40, tl = T, state = 'idle', total = 0, matchSum = 0, ROUND_N = 3, client = null;
+    var briefs = shuffle(FIT_BRIEFS).slice(0, 3), bi = 0, sel = {}, tab = 'top', T = 65, tl = T, state = 'idle', total = 0, matchSum = 0, ROUND_N = 4, client = null, twisted = false, perfects = 0;
+    briefs.splice(2, 0, pick(FIT_TWISTS)); // the third client changes their mind halfway through
 
     function dollSVG() {
       var s = '<svg viewBox="0 0 120 220" aria-hidden="true">' + TT + '<rect x="0" y="0" width="120" height="220" fill="none"/>';
@@ -1799,9 +1961,23 @@ window.NG = window.NG || {};
       var h = ''; FIT_SLOTS.forEach(function (p) { h += '<button type="button" class="mg-tab' + (tab === p[0] ? ' on' : '') + (sel[p[0]] ? ' done' : '') + '" data-s="' + p[0] + '">' + p[1] + '</button>'; }); tabsEl.innerHTML = h;
     }
     function drawGrid() {
-      var h = ''; FIT_ITEMS[tab].forEach(function (it, i) { h += '<button type="button" class="mg-item' + (sel[tab] === it ? ' on' : '') + '" data-i="' + i + '"><b>' + it.n + '</b><small>' + it.v + '</small></button>'; }); gridEl.innerHTML = h;
+      var h = ''; FIT_ITEMS[tab].forEach(function (it, i) { h += '<button type="button" class="mg-item' + (sel[tab] === it ? ' on' : '') + (client && it.t.indexOf(client.no) >= 0 ? ' banned' : '') + '" data-i="' + i + '"><b>' + it.n + '</b><small>&yen;' + FIT_PRICE[it.n] + ' &middot; ' + it.t.join(', ') + '</small></button>'; }); gridEl.innerHTML = h;
     }
-    function render() { drawDoll(); drawTabs(); drawGrid(); }
+    function cost() { var c = 0; FIT_SLOTS.forEach(function (p) { if (sel[p[0]]) c += FIT_PRICE[sel[p[0]].n]; }); return c; }
+    function drawBrief() {
+      if (!client) return; var c = cost();
+      briefEl.innerHTML = 'WANTS <b>' + client.want.join(' + ') + '</b> &middot; NO <b class="no">' + client.no + '</b> &middot; <span class="' + (c > client.budget ? 'over' : '') + '">&yen;' + c + '/' + client.budget + '</span>';
+    }
+    function bestFor(c) { // best tag score actually achievable under this brief's budget and ban
+      var best = 0;
+      FIT_ITEMS.top.forEach(function (a) { FIT_ITEMS.bottom.forEach(function (b) { FIT_ITEMS.shoes.forEach(function (d) { FIT_ITEMS.acc.forEach(function (e) {
+        var set = [a, b, d, e], p = 0, m = 0, bad = false;
+        set.forEach(function (it) { p += FIT_PRICE[it.n]; if (it.t.indexOf(c.no) >= 0) bad = true; it.t.forEach(function (t) { if (c.want.indexOf(t) >= 0) m++; }); });
+        if (!bad && p <= c.budget && m > best) best = m;
+      }); }); }); });
+      return Math.max(1, best);
+    }
+    function render() { drawDoll(); drawTabs(); drawGrid(); drawBrief(); }
 
     ctx.on(tabsEl, 'pointerdown', function (e) { var b = e.target.closest && e.target.closest('.mg-tab'); if (!b || state !== 'play') return; e.preventDefault(); tab = b.getAttribute('data-s'); sfx('click'); drawTabs(); drawGrid(); });
     ctx.on(gridEl, 'click', function (e) {
@@ -1814,35 +1990,47 @@ window.NG = window.NG || {};
     ctx.on(doneB, 'click', function () { if (state === 'play') judge(); });
 
     function newRound() {
-      client = briefs[bi]; sel = {}; tab = 'top'; tl = T; state = 'play';
+      client = briefs[bi]; sel = {}; tab = 'top'; tl = T; state = 'play'; twisted = false;
       cast.who(1, client.who, 'neutral'); cast.base(1, 'neutral');
       cast.say(1, client.say, 0); render(); doneB.disabled = false;
       ctx.setScore('CLIENT <b>' + (bi + 1) + '/' + ROUND_N + '</b> &middot; <b>' + total + '</b>');
     }
+    function applyTwist() {
+      twisted = true; var nw = {}, k0; for (k0 in client) nw[k0] = client[k0]; for (k0 in client.twist) nw[k0] = client.twist[k0]; delete nw.twist; client = nw;
+      tl = Math.min(T, tl + 15); sfx('boo'); cast.base(1, 'shock'); cast.say(1, client.say, 0); drawBrief(); drawGrid();
+    }
     function judge() {
-      if (state !== 'play') return; state = 'judge'; doneB.disabled = true;
-      var m = 0, filled = 0;
-      FIT_SLOTS.forEach(function (p) { var it = sel[p[0]]; if (it) { filled++; it.t.forEach(function (t) { if (client.want.indexOf(t) >= 0) m++; }); } });
-      m = Math.min(8, m); var ratio = m / 8, pts = m * 12 + (filled === 4 ? 10 : 0);
+      if (state !== 'play') return;
+      if (client.twist && !twisted && tl > 0) { applyTwist(); return; } // finishing early just means they change their mind sooner
+      state = 'judge'; doneB.disabled = true;
+      var m = 0, filled = 0, spent = cost(), banned = false, best = bestFor(client);
+      FIT_SLOTS.forEach(function (p) { var it = sel[p[0]]; if (it) { filled++; if (it.t.indexOf(client.no) >= 0) banned = true; it.t.forEach(function (t) { if (client.want.indexOf(t) >= 0) m++; }); } });
+      var over = spent > client.budget, ratio = Math.min(1, m / best);
+      if (banned) ratio *= 0.5; if (over) ratio *= 0.75;
+      var pts = Math.round(ratio * 90) + (filled === 4 ? 10 : 0) + (over ? 0 : (client.budget - spent) * 3) + (twisted && ratio >= 0.75 ? 40 : 0);
       total += pts; matchSum += ratio;
-      var tier = ratio >= 0.75 ? 3 : ratio >= 0.5 ? 2 : ratio >= 0.25 ? 1 : 0;
-      if (filled < 2) tier = 0;
+      var tier = ratio >= 0.85 ? 3 : ratio >= 0.6 ? 2 : ratio >= 0.3 ? 1 : 0;
+      if (filled < 2) tier = 0; if (tier === 3) perfects++;
       cast.set(0, tier >= 2 ? 'smirk' : tier === 1 ? 'neutral' : 'angry'); cast.set(1, tier >= 2 ? 'happy' : 'sad');
-      cast.say(0, pick(FIT_VERDICT[tier]) + '  (' + m + '/8, +' + pts + ')', 0); sfx(tier >= 2 ? 'perfect' : tier === 1 ? 'good' : 'miss');
+      var note = banned ? client.nope : over ? 'Lovely. Who is paying for this? Not them.' : tier >= 2 && Math.random() < 0.6 ? client.win : null;
+      if (note) cast.say(1, note + '  (+' + pts + ')', 0);
+      else cast.say(0, pick(FIT_VERDICT[tier]) + '  (+' + pts + ')', 0);
+      sfx(tier >= 2 ? 'perfect' : tier === 1 ? 'good' : 'miss');
       ctx.setScore('CLIENT <b>' + (bi + 1) + '/' + ROUND_N + '</b> &middot; <b>' + total + '</b>');
       ctx.later(function () {
         bi++; if (bi >= ROUND_N) finishNow(); else { cast.set(0, 'neutral'); newRound(); }
-      }, 3000);
+      }, 3200);
     }
 
     function finishNow() {
-      state = 'end'; var avg = matchSum / ROUND_N, stars = avg >= 0.62 ? 3 : avg >= 0.42 ? 2 : avg >= 0.22 ? 1 : 0;
+      state = 'end'; var avg = matchSum / ROUND_N, stars = avg >= 0.85 ? 3 : avg >= 0.65 ? 2 : avg >= 0.35 ? 1 : 0;
       ctx.finish({ title: 'Sale day verdict', score: total, stars: stars, effects: { bond: stars, fame: Math.max(0, stars - 1) },
-        html: '<div class="mg-stats"><span>Clients <b>' + ROUND_N + '</b></span><span>Style match <b>' + Math.round(avg * 100) + '%</b></span></div>' });
+        html: '<div class="mg-stats"><span>Clients <b>' + ROUND_N + '</b></span><span>Style match <b>' + Math.round(avg * 100) + '%</b></span><span>Nailed <b>' + perfects + '</b></span></div>' });
     }
 
     function update(dt) {
       if (state !== 'play') return;
+      if (client.twist && !twisted && tl <= T * 0.6) applyTwist();
       tl -= dt; barI.style.width = Math.max(0, tl / T * 100).toFixed(1) + '%'; barI.className = tl < 5 ? 'low' : '';
       if (tl <= 0) judge();
     }
@@ -1875,6 +2063,16 @@ window.NG = window.NG || {};
     ['All parties will be nice about the load-in elevator.', 0], ['Artists choose their own album art, within reason.', 0],
     ['Gigs shall have fire exits. This is boring but important.', 0], ['Disputes go to a mediator who has not met anyone involved.', 0]
   ];
+  // The fine print: sounds generous but bites, or sounds insane but is fine. Only appears after the mid-game twist.
+  var FINE_PRINT = [
+    ['Signing bonus of two million yen, payable upon the heat death of the universe.', 1], ['The Artist keeps 100% of royalties, after deductions of 100%.', 1],
+    ['The Label provides a private car. The Artist agrees to live in it.', 1], ['Free catering at all events. "Events" to be defined by Greg.', 1],
+    ['Artists may leave at any time, subject to Appendix Forever.', 1], ['A generous holiday allowance, to be taken during the Artist\'s sleep.', 1],
+    ['Full creative freedom, as described in the Label\'s creative requirements.', 1],
+    ['The Drummer may bill the Label for the time spent reading this contract.', 0], ['In the event of fire, the Label carries the amps.', 0],
+    ['Any employee named Greg must introduce himself before speaking.', 0], ['The Label surrenders its cat upon request.', 0],
+    ['The Bassist is a minor and shall be sent home at a sensible hour. Yes, you.', 0], ['The Vocalist may glare at executives without notice.', 0]
+  ];
   var YASU_OK = ['Sustained.', 'Objection. Obviously.', 'Noted. Stamped. Moving on.', 'Section denied.', 'That one had a trapdoor.'];
   var YASU_BAD = ['That one was fine. Alarming, but fine.', 'You objected to water. Water.', 'Overruled. By me. Quietly.'];
   var YASU_SIGNED = ['Signed. We are now owned by a sandwich.', 'Well. That is binding. Probably.', 'I will pretend I did not see that.'];
@@ -1885,13 +2083,25 @@ window.NG = window.NG || {};
     ctx.stage.appendChild(root);
     var field = root.children[1], line = field.firstChild;
     var cast = ctx.cast(root.children[0], ['yasu', 'takumi'], 'mg-cast-strip'); cast.base(0, 'neutral'); cast.base(1, 'smirk');
-    var deck = shuffle(CLAUSES), di = 0, cards = [], t = 0, spawnT = 0.3, score = 0, streak = 0, caught = 0, signedEvil = 0, wrong = 0, lives = 3, TOTAL = 50, ended = false, fairSigned = 0;
+    var deck = shuffle(CLAUSES), di = 0, cards = [], t = 0, spawnT = 0.3, score = 0, streak = 0, caught = 0, signedEvil = 0, wrong = 0, lives = 3, TOTAL = 80, ended = false, fairSigned = 0;
+    // Depth: stamping at the last second pays double, a streak earns a RECESS, and halfway through the fine print starts lying.
+    var fine = shuffle(FINE_PRINT), fi = 0, finePhase = false, recess = 0, freeze = 0, late = 0;
+    var recB = el('button', 'mg-obj-recess', ''); recB.type = 'button'; recB.tabIndex = -1; field.appendChild(recB);
+    var banner = el('div', 'mg-obj-banner', ''); field.appendChild(banner);
+    function drawRecess() { recB.textContent = 'RECESS x' + recess; recB.disabled = recess <= 0 || freeze > 0; }
+    function callRecess() {
+      if (!ctx.playing || ended || recess <= 0 || freeze > 0) return; recess--; freeze = 5; drawRecess(); sfx('select');
+      banner.textContent = 'RECESS: THE CLAUSES WILL WAIT'; banner.className = 'mg-obj-banner show';
+      cast.react(0, 'neutral', 'Five seconds. Read. Everyone else may sit quietly and feel bad.', 2600);
+    }
+    ctx.on(recB, 'pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); callRecess(); });
+    ctx.on(window, 'keydown', function (e) { if (e.key === ' ' && !e.repeat) { if (ctx.playing) e.preventDefault(); callRecess(); } });
 
     function hud() { ctx.setScore('SCORE <b>' + score + '</b> &middot; ' + new Array(lives + 1).join('&#9998;') + ' &middot; ' + Math.max(0, Math.ceil(TOTAL - t)) + 's'); }
-    function speed() { return Math.min(field.clientHeight * 0.55, field.clientHeight * 0.17 + t * 3.2); }
+    function speed() { return field.clientHeight * Math.min(0.14, 0.085 + t * 0.0009); }
     function spawn() {
       if (di >= deck.length) { deck = shuffle(CLAUSES); di = 0; }
-      var c = deck[di++], d = el('div', 'mg-clause', '<span>' + c[0] + '</span>'); field.appendChild(d);
+      var c = finePhase && fi < fine.length && Math.random() < 0.55 ? fine[fi++] : deck[di++], d = el('div', 'mg-clause', '<span>' + c[0] + '</span>'); field.appendChild(d);
       cards.push({ el: d, y: -d.offsetHeight - 4, h: d.offsetHeight, evil: c[1], done: false }); d.style.transform = 'translateY(' + cards[cards.length - 1].y + 'px)';
     }
     function gone(c) { c.done = true; ctx.later(function () { if (c.el.parentNode) c.el.parentNode.removeChild(c.el); }, 420); }
@@ -1902,8 +2112,11 @@ window.NG = window.NG || {};
       var c = cards.filter(function (x) { return x.el === d; })[0]; if (!c || c.done) return;
       gone(c);
       if (c.evil) {
-        streak++; caught++; var pts = 10 * (1 + Math.floor(streak / 4)); score += pts; sfx('perfect');
-        c.el.classList.add('stamp'); cast.react(0, 'smirk', pick(YASU_OK) + '  +' + pts, 1700); cast.react(1, 'angry', null, 1700);
+        streak++; caught++; var pts = 10 * (1 + Math.floor(streak / 4)), lineY0 = field.clientHeight - 62, isLate = c.y + c.h >= lineY0 - field.clientHeight * 0.2;
+        if (isLate) { pts *= 2; late++; }
+        if (streak % 5 === 0 && recess < 2) { recess++; drawRecess(); }
+        score += pts; sfx('perfect'); c.el.classList.add('stamp');
+        cast.react(0, 'smirk', (isLate ? 'Cutting it fine. Good.' : pick(YASU_OK)) + '  +' + pts, 1700); cast.react(1, 'angry', null, 1700);
       } else {
         streak = 0; wrong++; score = Math.max(0, score - 15); sfx('miss'); c.el.classList.add('wrong');
         cast.react(0, 'neutral', pick(YASU_BAD), 1900); cast.react(1, 'happy', 'Thank you for your cooperation!', 1900);
@@ -1923,17 +2136,22 @@ window.NG = window.NG || {};
 
     function endGame() { if (ended) return; ended = true; ctx.later(finishNow, 900); }
     function finishNow() {
-      var stars = score >= 230 ? 3 : score >= 130 ? 2 : score >= 60 ? 1 : 0;
+      var stars = score >= 340 ? 3 : score >= 190 ? 2 : score >= 70 ? 1 : 0;
       ctx.finish({ title: 'Contract review', score: score, stars: stars, effects: { harmony: stars, scandal: stars >= 3 ? -2 : stars === 2 ? -1 : 0 },
-        html: '<div class="mg-stats"><span>Objections <b>' + caught + '</b></span><span>Wrongful <b>' + wrong + '</b></span><span>Signed evil <b>' + signedEvil + '</b></span></div>' });
+        html: '<div class="mg-stats"><span>Objections <b>' + caught + '</b></span><span>Last-second <b>' + late + '</b></span><span>Wrongful <b>' + wrong + '</b></span><span>Signed evil <b>' + signedEvil + '</b></span></div>' });
     }
 
     function update(dt) {
       if (ended) return; t += dt;
       var H = field.clientHeight, lineY = H - 62, v = speed(), i, c, last = cards.filter(function (x) { return !x.done; }).slice(-1)[0];
       line.style.top = lineY + 'px';
+      if (!finePhase && t >= TOTAL * 0.45) {
+        finePhase = true; banner.textContent = 'TAKUMI ADDS THE FINE PRINT'; banner.className = 'mg-obj-banner show'; ctx.later(function () { if (freeze <= 0) banner.className = 'mg-obj-banner'; }, 2600); sfx('boo');
+        cast.react(0, 'neutral', 'He has started being generous. Read to the end of each sentence.', 3000); cast.react(1, 'smirk', null, 3000);
+      }
+      if (freeze > 0) { freeze -= dt; if (freeze <= 0) { banner.className = 'mg-obj-banner'; drawRecess(); } hud(); return; }
       spawnT -= dt;
-      if (t < TOTAL - 6 && spawnT <= 0 && (!last || last.y > 10)) { spawn(); spawnT = Math.max(0.55, 1.7 - t * 0.02); if (Math.random() < 0.25) cast.react(1, 'smirk', pick(TAKUMI), 1800); }
+      if (t < TOTAL - 8 && spawnT <= 0 && (!last || last.y > 8)) { spawn(); spawnT = Math.max(1.9, 3.1 - t * 0.018); if (Math.random() < 0.25) cast.react(1, 'smirk', pick(TAKUMI), 1800); }
       for (i = cards.length - 1; i >= 0; i--) {
         c = cards[i]; if (c.done) { if (!c.el.parentNode) cards.splice(i, 1); continue; }
         c.y += v * dt; c.el.style.transform = 'translateY(' + c.y.toFixed(1) + 'px)';
@@ -1942,7 +2160,7 @@ window.NG = window.NG || {};
       if (t >= TOTAL && !cards.some(function (x) { return !x.done; })) endGame();
       hud();
     }
-    return { begin: function () { cast.say(0, 'Read carefully. Then stamp. Do not enjoy it.', 2500); hud(); }, update: update, destroy: function () { cards.length = 0; } };
+    return { begin: function () { cast.say(0, 'Read carefully. Then stamp. Do not enjoy it.', 2500); drawRecess(); hud(); }, update: update, destroy: function () { cards.length = 0; } };
   }
 
   /* =====================================================================
@@ -1977,25 +2195,30 @@ window.NG = window.NG || {};
     var rooms = '', i;
     for (i = 0; i < 6; i++) rooms += '<div class="mg-room" data-r="' + i + '"><div class="mg-vacant">ROOM ' + (i + 1) + '</div><div class="mg-guest"></div><div class="mg-want"></div><div class="mg-pat"><i></i></div></div>';
     var tray = ''; INN_KEYS.forEach(function (k) { tray += '<button type="button" class="mg-tray-item" data-k="' + k + '">' + INN_ITEMS[k].svg + '<b>' + INN_ITEMS[k].n + '</b></button>'; });
+    tray += '<button type="button" class="mg-inn-bow" tabindex="-1"><i></i><b>SORRY!</b></button>';
     var root = el('div', 'mg-inn', '<div class="mg-strip"></div><div class="mg-inn-rooms">' + rooms + '</div><div class="mg-inn-tray">' + tray + '</div>');
     ctx.stage.appendChild(root);
     var cast = ctx.cast(root.children[0], ['nobu', 'shin', 'yasu', 'nana'], 'mg-cast-strip');
     cast.base(0, 'happy'); cast.base(1, 'neutral'); cast.base(2, 'neutral'); cast.base(3, 'smirk');
     var roomEls = root.querySelectorAll('.mg-room'), trayEls = root.querySelectorAll('.mg-tray-item');
-    var G = [null, null, null, null, null, null], sel = null, tgt = null, t = 0, TOTAL = 50, spawnT = 1, score = 0, served = 0, lost = 0, rep = 3, streak = 0, ended = false, grumpyServed = 0;
+    var G = [null, null, null, null, null, null], sel = null, tgt = null, t = 0, TOTAL = 75, spawnT = 1, score = 0, served = 0, lost = 0, rep = 3, streak = 0, ended = false, grumpyServed = 0;
+    // Depth: a streak pays out in tips, Nobu's mass apology spends the streak to buy everyone patience, and halfway through a tour bus arrives.
+    var bow = 0, bus = false, bows = 0, bowB = root.querySelector('.mg-inn-bow'), bowI = bowB.firstChild;
+    function drawBow() { bowI.style.height = Math.round(bow * 100) + '%'; bowB.classList.toggle('ready', bow >= 1); bowB.disabled = bow < 1; }
 
     function hud() { ctx.setScore('SCORE <b>' + score + '</b> &middot; ' + new Array(rep + 1).join('&hearts;') + ' &middot; ' + Math.max(0, Math.ceil(TOTAL - t)) + 's'); }
     function paint(r) {
       var g = G[r], el0 = roomEls[r], gu = el0.querySelector('.mg-guest');
       el0.classList.toggle('busy', !!g); el0.classList.toggle('grumpy', !!(g && g.grumpy));
       if (!g) { gu.innerHTML = ''; el0.querySelector('.mg-want').innerHTML = ''; return; }
-      gu.innerHTML = guestSVG(g.look, g.mood, g.grumpy); el0.querySelector('.mg-want').innerHTML = INN_ITEMS[g.want].svg;
+      gu.innerHTML = guestSVG(g.look, g.mood, g.grumpy); el0.querySelector('.mg-want').innerHTML = INN_ITEMS[g.want].svg + (g.want2 ? '<em>+1</em>' : '');
     }
+    function mult() { return 1 + Math.min(3, Math.floor(streak / 4)); }
     function selectTray(k) { sel = k; trayEls.forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-k') === k); }); }
     function spawn() {
       var free = []; for (var r = 0; r < 6; r++) if (!G[r]) free.push(r); if (!free.length) return;
-      var r2 = pick(free), grumpy = t > 8 && Math.random() < 0.18, base = Math.max(8, 15 - t * 0.1) * (grumpy ? 0.7 : 1);
-      G[r2] = { want: pick(INN_KEYS), pat: base, max: base, look: Math.floor(Math.random() * 20), mood: 0, grumpy: grumpy };
+      var r2 = pick(free), grumpy = t > 8 && Math.random() < 0.18, two = bus && Math.random() < 0.55, base = Math.max(12, 20 - t * 0.09) * (grumpy ? 0.8 : 1) * (two ? 1.35 : 1);
+      G[r2] = { want: pick(INN_KEYS), want2: two ? pick(INN_KEYS) : null, pat: base, max: base, look: Math.floor(Math.random() * 20), mood: 0, grumpy: grumpy };
       paint(r2); sfx('click');
     }
     function leave(r, happy) {
@@ -2005,11 +2228,14 @@ window.NG = window.NG || {};
     function deliver(r) {
       var g = G[r]; if (!g || !ctx.playing || ended) return;
       if (!sel) { tgt = r; roomEls.forEach(function (x, j) { x.classList.toggle('tgt', j === r); }); sfx('click'); return; }
+      if (sel === g.want && g.want2) { // first course of a two-item order
+        g.want = g.want2; g.want2 = null; g.pat = Math.min(g.max, g.pat + 4); score += 8; sfx('good'); paint(r); selectTray(null); hud(); return;
+      }
       if (sel === g.want) {
-        var pts = 10 + Math.round(g.pat / g.max * 10), who = INN_OK[sel][0];
+        var pts = (10 + Math.round(g.pat / g.max * 10)) * mult(), who = INN_OK[sel][0];
         if (g.grumpy) { pts += 30; grumpyServed++; cast.react(3, 'smirk', pick(INN_NANA), 2400); }
         else cast.react(['nobu', 'shin', 'yasu'].indexOf(who[0]), 'happy', who[1], 2400);
-        streak++; served++; score += pts; sfx(g.grumpy ? 'cheer' : 'perfect'); leave(r, true);
+        streak++; served++; score += pts; bow = Math.min(1, bow + 0.25); drawBow(); sfx(g.grumpy ? 'cheer' : 'perfect'); leave(r, true);
         var fp = el('div', 'mg-float', '+' + pts); roomEls[r].appendChild(fp); ctx.later(function () { if (fp.parentNode) fp.parentNode.removeChild(fp); }, 900);
         selectTray(null);
       } else {
@@ -2023,16 +2249,25 @@ window.NG = window.NG || {};
       selectTray(sel === k ? null : k); sfx('click');
     }
     ctx.on(root.children[1], 'pointerdown', function (e) { var r = e.target.closest && e.target.closest('.mg-room'); if (r) { e.preventDefault(); deliver(+r.getAttribute('data-r')); } });
+    function apologise() {
+      if (!ctx.playing || ended || bow < 1) return;
+      bow = 0; bows++; streak = 0; drawBow(); sfx('select');
+      for (var q = 0; q < 6; q++) if (G[q]) { G[q].pat = Math.min(G[q].max, G[q].pat + G[q].max * 0.5); }
+      cast.react(0, 'shock', pick(['I AM SO SORRY! ALL OF YOU! IN ADVANCE!', 'On behalf of my family, my band, and this tea: SORRY!', 'Nobu bows so low he finds a lost slipper.']), 2300);
+      cast.react(1, 'neutral', 'He does this at restaurants too.', 2300);
+    }
+    ctx.on(bowB, 'pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); apologise(); });
     ctx.on(root.children[2], 'pointerdown', function (e) { var b = e.target.closest && e.target.closest('.mg-tray-item'); if (b) { e.preventDefault(); trayTap(b.getAttribute('data-k')); } });
 
     function finishNow() {
-      var stars = score >= 280 ? 3 : score >= 170 ? 2 : score >= 80 ? 1 : 0;
+      var stars = score >= 1100 ? 3 : score >= 600 ? 2 : score >= 220 ? 1 : 0;
       ctx.finish({ title: 'Shift report', score: score, stars: stars, effects: { harmony: stars, bond: stars },
-        html: '<div class="mg-stats"><span>Guests served <b>' + served + '</b></span><span>Walked out <b>' + lost + '</b></span><span>Scared into tipping <b>' + grumpyServed + '</b></span></div>' });
+        html: '<div class="mg-stats"><span>Guests served <b>' + served + '</b></span><span>Walked out <b>' + lost + '</b></span><span>Scared into tipping <b>' + grumpyServed + '</b></span><span>Mass apologies <b>' + bows + '</b></span></div>' });
     }
     function update(dt) {
       if (ended) return; t += dt;
-      spawnT -= dt; if (spawnT <= 0 && t < TOTAL - 4) { spawn(); spawnT = Math.max(1.2, 3.2 - t * 0.04) * rr(0.8, 1.2); }
+      if (!bus && t >= TOTAL * 0.45) { bus = true; sfx('boo'); cast.react(0, 'shock', 'A TOUR BUS! Two things each! Mum said NOTHING about a bus!', 2600); cast.react(2, 'neutral', 'I will carry them. Do not thank me. Do bring more towels.', 2600); }
+      spawnT -= dt; if (spawnT <= 0 && t < TOTAL - 4) { spawn(); spawnT = Math.max(2.0, 3.6 - t * 0.028) * rr(0.8, 1.2); }
       for (var r = 0; r < 6; r++) {
         var g = G[r]; if (!g) continue; g.pat -= dt;
         var f = Math.max(0, g.pat / g.max), m = f > 0.55 ? 0 : f > 0.25 ? 1 : 2;
@@ -2043,7 +2278,7 @@ window.NG = window.NG || {};
       if (t >= TOTAL) { ended = true; ctx.later(finishNow, 400); }
       hud();
     }
-    return { begin: function () { hud(); cast.say(0, 'Welcome to the family inn! Please be normal!', 2600); }, update: update, destroy: function () { G = []; } };
+    return { begin: function () { hud(); cast.say(0, 'Welcome to the family inn! Please be normal!', 2600); drawBow(); }, update: update, destroy: function () { G = []; } };
   }
 
   /* =====================================================================
@@ -2074,54 +2309,66 @@ window.NG = window.NG || {};
   function sandwich(ctx) {
     var cells = '', i;
     for (i = 0; i < 9; i++) cells += '<div class="mg-cell" data-c="' + i + '"><div class="mg-hole"><div class="mg-pop"></div></div><div class="mg-nom">NOM</div></div>';
-    var root = el('div', 'mg-sw', '<div class="mg-strip"></div><div class="mg-sw-left"></div><div class="mg-sw-grid">' + cells + '</div>');
+    var root = el('div', 'mg-sw', '<div class="mg-strip"></div><div class="mg-sw-bar"><div class="mg-sw-left"></div><button type="button" class="mg-sw-bait" tabindex="-1">BAIT</button></div><div class="mg-sw-grid">' + cells + '</div>');
     ctx.stage.appendChild(root);
     var cast = ctx.cast(root.children[0], ['nana', 'naoki'], 'mg-cast-strip'); cast.base(0, 'smirk'); cast.base(1, 'happy');
-    var leftEl = root.children[1], cellEls = root.querySelectorAll('.mg-cell');
-    var P = [], t = 0, TOTAL = 50, spawnT = 0.5, sand = 10, MAXS = 10, score = 0, streak = 0, hits = 0, stolen = 0, bad = 0, ended = false;
+    var leftEl = root.querySelector('.mg-sw-left'), baitB = root.querySelector('.mg-sw-bait'), gridEl = root.querySelector('.mg-sw-grid'), cellEls = root.querySelectorAll('.mg-cell');
+    var P = [], t = 0, TOTAL = 60, spawnT = 0.5, sand = 10, MAXS = 10, score = 0, streak = 0, hits = 0, stolen = 0, bad = 0, ended = false;
+    // Depth: spend a sandwich as bait for double points and slower grabs; at the halfway mark it becomes a costume party and everyone is in disguise.
+    var baitT = 0, baited = 0, party = false;
 
     function drawSand() { var h = ''; for (var k = 0; k < MAXS; k++) h += '<span class="mg-sand' + (k < sand ? '' : ' gone') + '"></span>'; leftEl.innerHTML = h; }
-    function hud() { ctx.setScore('SCORE <b>' + score + '</b> &middot; ' + Math.max(0, Math.ceil(TOTAL - t)) + 's'); }
+    function hud() { ctx.setScore('SCORE <b>' + score + '</b> &middot; SANDWICHES <b>' + sand + '</b> &middot; ' + Math.max(0, Math.ceil(TOTAL - t)) + 's'); }
     function hide(c) { cellEls[c].classList.remove('up'); ctx.later(function () { if (!P[c]) cellEls[c].classList.remove('hit', 'stole', 'oops'); }, 600); }
     function spawn() {
       var free = []; for (var k = 0; k < 9; k++) if (!P[k]) free.push(k); if (!free.length || free.length < 7) return;
-      var c = pick(free), decoy = t > 5 && Math.random() < 0.2, who = decoy ? pick(['reira', 'shin']) : 'naoki';
-      var p = { who: who, dur: Math.max(0.75, 1.5 - t * 0.015), t: 0, dis: (who === 'naoki' && Math.random() < 0.6) ? Math.floor(Math.random() * DISGUISES.length) : null, hit: false };
-      if (p.dis === null) p.dis = 0, p.plain = true;
+      var c = pick(free), decoy = t > 5 && Math.random() < (party ? 0.34 : 0.22), who = decoy ? pick(['reira', 'shin']) : 'naoki';
+      var masked = who === 'naoki' ? Math.random() < 0.6 : party && Math.random() < 0.75;
+      var p = { who: who, dur: Math.max(1.4, 2.3 - t * 0.012) * (baitT > 0 && who === 'naoki' ? 1.4 : 1), t: 0, dis: masked ? Math.floor(Math.random() * DISGUISES.length) : 0, plain: !masked, hit: false };
       P[c] = p; show2(c, p);
-      if (p.who === 'naoki' && !p.plain && Math.random() < 0.3) cast.react(0, 'smirk', 'That is ' + DISGUISES[p.dis][0] + '. It is Naoki.', 1800);
+      if (p.who === 'naoki' && masked && Math.random() < 0.25) cast.react(0, 'smirk', 'That is ' + DISGUISES[p.dis][0] + '. It is Naoki.', 1800);
     }
     function show2(c, p) {
       var pop = cellEls[c].querySelector('.mg-pop');
       if (p.who === 'naoki') pop.innerHTML = '<div class="mg-face mg-popface">' + naokiSVG('happy', p.plain ? null : p.dis) + '</div>';
-      else pop.innerHTML = faceBox(p.who, 'happy', 'mg-popface');
+      else pop.innerHTML = faceBox(p.who, 'happy', 'mg-popface').replace('</svg>', (p.plain ? '' : DISGUISES[p.dis][1]) + '</svg>');
       cellEls[c].classList.add('up'); cellEls[c].classList.remove('hit', 'stole', 'oops');
     }
-    ctx.on(root.children[2], 'pointerdown', function (e) {
+    function drawBait() { baitB.textContent = baitT > 0 ? 'BAITED ' + Math.ceil(baitT) : 'BAIT -1'; baitB.disabled = baitT > 0 || sand <= 1 || ended; }
+    function setBait() {
+      if (!ctx.playing || ended || baitT > 0 || sand <= 1) return;
+      sand--; baited++; baitT = 7; drawSand(); drawBait(); sfx('select');
+      cast.react(0, 'smirk', 'Leave one out. He cannot help himself. Double points.', 2000); cast.react(1, 'happy', 'Is that one... for me?', 2000);
+    }
+    ctx.on(baitB, 'pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); setBait(); });
+    ctx.on(window, 'keydown', function (e) { if (e.key === ' ' && !e.repeat) { if (ctx.playing) e.preventDefault(); setBait(); } });
+    ctx.on(gridEl, 'pointerdown', function (e) {
       if (!ctx.playing || ended) return;
       var ce = e.target.closest && e.target.closest('.mg-cell'); if (!ce) return; e.preventDefault();
       var c = +ce.getAttribute('data-c'), p = P[c]; if (!p || p.hit) return;
       p.hit = true;
       if (p.who === 'naoki') {
-        hits++; streak++; var pts = 10 * (1 + Math.floor(streak / 5)); score += pts; sfx('good');
+        hits++; streak++; var pts = 10 * (1 + Math.floor(streak / 5)) * (baitT > 0 ? 2 : 1); score += pts; sfx('good');
         ce.classList.add('hit'); cast.react(1, 'shock', pick(NAOKI_OW), 1500); if (streak % 5 === 0) cast.react(0, 'happy', 'Streak of ' + streak + '. I am almost impressed.', 1800);
       } else {
         bad++; streak = 0; sand = Math.max(0, sand - 1); score = Math.max(0, score - 20); sfx('miss'); ce.classList.add('oops'); drawSand();
-        cast.react(0, 'shock', 'You hit ' + (p.who === 'reira' ? 'Reira' : 'Shin') + '. Why. Why would you do that.', 2200);
+        cast.react(0, 'shock', p.who === 'reira' ? 'You hit Reira. In the costume. Why would you do that.' : pick(['You hit Shin. He did not blink. That is worse.', 'Shin wants it noted that he is only here for the sandwiches.']), 2200);
         if (sand <= 0) endGame();
       }
       ctx.later(function () { hide(c); P[c] = null; }, 280); hud();
     });
     function endGame() { if (ended) return; ended = true; ctx.later(finishNow, 800); }
     function finishNow() {
-      var stars = score >= 330 ? 3 : score >= 190 ? 2 : score >= 80 ? 1 : 0; if (sand <= 0) stars = Math.min(stars, 1);
+      var stars = score >= 1100 ? 3 : score >= 350 ? 2 : score >= 90 ? 1 : 0; if (sand <= 0) stars = Math.min(stars, 1);
       ctx.finish({ title: 'Catering report', score: score, stars: stars, effects: { fame: stars },
-        html: '<div class="mg-stats"><span>Naoki whacked <b>' + hits + '</b></span><span>Sandwiches left <b>' + sand + '/' + MAXS + '</b></span><span>Wrong faces <b>' + bad + '</b></span></div>' });
+        html: '<div class="mg-stats"><span>Naoki whacked <b>' + hits + '</b></span><span>Sandwiches left <b>' + sand + '/' + MAXS + '</b></span><span>Wrong faces <b>' + bad + '</b></span><span>Baits <b>' + baited + '</b></span></div>' });
     }
     function update(dt) {
       if (ended) return; t += dt; spawnT -= dt;
+      if (baitT > 0) { baitT -= dt; drawBait(); if (baitT <= 0) { baitT = 0; drawBait(); } }
+      if (!party && t >= TOTAL * 0.45) { party = true; sfx('boo'); cast.react(0, 'neutral', 'Costume party. Look at the faces. Reira will not forgive a second one.', 2800); cast.react(1, 'happy', null, 2800); }
       var active = P.filter(Boolean).length;
-      if (spawnT <= 0 && t < TOTAL - 1 && active < 3) { spawn(); spawnT = Math.max(0.4, 1.0 - t * 0.012) * rr(0.8, 1.15); }
+      if (spawnT <= 0 && t < TOTAL - 1 && active < 3) { spawn(); spawnT = Math.max(0.85, 1.25 - t * 0.008) * rr(0.8, 1.15); }
       for (var c = 0; c < 9; c++) {
         var p = P[c]; if (!p || p.hit) continue; p.t += dt;
         if (p.t >= p.dur) {
@@ -2136,8 +2383,8 @@ window.NG = window.NG || {};
       if (t >= TOTAL) endGame();
       hud();
     }
-    drawSand();
-    return { begin: function () { hud(); cast.say(0, 'Guard the sandwiches. Tap Naoki. Do NOT tap Reira or Shin.', 3000); }, update: update, destroy: function () { P = []; } };
+    drawSand(); drawBait();
+    return { begin: function () { hud(); drawBait(); cast.say(0, 'Guard the sandwiches. Tap Naoki. Do NOT tap Reira or Shin.', 3000); }, update: update, destroy: function () { P = []; } };
   }
 
   /* ---------- registry ---------- */
@@ -2151,8 +2398,8 @@ window.NG = window.NG || {};
     id: 'shortcake', cast: { how: { faces: [['hachi', 'happy'], ['nana', 'smirk']], say: 'It is for the housewarming, so it has to be perfect. Or at least standing!' },
       res: { faces: ['hachi', 'nana'], ex: [['sad', 'smirk'], ['neutral', 'neutral'], ['happy', 'smirk'], ['happy', 'happy']],
         say: ['It fell over. I fell over. We are both fine.', 'It is... rustic, right? Rustic is a thing!', 'Look at it! It is a cake and I made it!', 'Nana, say something. Nana? Are you crying?'] } }, title: 'Strawberry Shortcake Stack',
-    howto: 'Hachi is baking for the Room 707 housewarming, and gravity is not a fan. Drop each sponge layer onto the stack. Anything hanging over gets sliced off, so layers shrink. Land one dead-centre for a strawberry, a streak, and a little width back.',
-    controls: 'Space / Enter / click / tap = drop',
+    howto: 'Hachi is baking for the Room 707 housewarming, and gravity is not a fan. Drop each sponge layer on the stack; overhang gets sliced off. Land dead-centre for a strawberry, a streak and some width back. Higher layers pay more, but the cake only counts in full if you SERVE it before it falls. Once Nana is home, every third layer is black: land it clean for triple points, or lose extra. The ceiling is 30 layers.',
+    controls: 'Tap, Space or Enter to drop &nbsp;&middot;&nbsp; Serve it button or E to bank',
     lines: [
       ['That is not a cake, that is a landslide with frosting. Hachi serves it anyway, with a spoon and a smile.', 'The cake leans like a tourist reading a map. Nobody mentions it.'],
       ['A cake! Technically! Nana eats a slice and says "interesting" in a very careful voice.', 'It stands. It tilts. It is full of love and structural doubt.'],
@@ -2165,8 +2412,8 @@ window.NG = window.NG || {};
     id: 'redflag', cast: { how: { faces: [['hachi', 'happy'], ['nana', 'angry']], say: 'He looked at me across the street. Like a movie. A GOOD movie.' },
       res: { faces: ['hachi', 'nana'], ex: [['sad', 'angry'], ['shock', 'neutral'], ['happy', 'smirk'], ['happy', 'smirk']],
         say: ['He had a snake called Mommy. Mommy did not like me.', 'Wait, am I engaged? Did I get engaged?', 'I was careful this time! I was careful!', 'Radar online! Nana, you can stop sighing now.'] } }, title: 'Love at First Sight Radar',
-    howto: 'Hachi has fallen in love at first sight. AGAIN. Judge every suitor fast: RUN from the red flags, LOVE the rare genuinely decent human. The clock shrinks as your streak grows, three heartbreaks end it, and the Demon Lord will swap your left and right.',
-    controls: '&larr; / A = RUN &nbsp;&middot;&nbsp; &rarr; / D = LOVE &nbsp;&middot;&nbsp; or swipe the card, or tap the buttons',
+    howto: 'Hachi has fallen in love at first sight. AGAIN. Take your time and read each suitor: RUN from the red flags, LOVE the rare decent human. Some look fine and are not, and some look awful and are lovely. Ask Nana twice per game (half points), three heartbreaks end it, and later the Demon Lord turns up in disguise. Spot his tell and RUN, or he swaps your left and right.',
+    controls: 'Swipe the card or tap the buttons &nbsp;&middot;&nbsp; &larr; / A = RUN, &rarr; / D = LOVE, &uarr; / W = Ask Nana',
     lines: [
       ['Hachi agrees to a date with a man who owns zero chairs. Nana sighs from the next room, loudly, like a kettle.', 'Heartbroken, but weirdly optimistic. Standard Hachi.'],
       ['A few close calls and one questionable towel. Hachi is hopeful, slightly bruised, and checking her phone.', 'Passable radar. Please do not let her date anyone with a "concept".'],
@@ -2179,7 +2426,7 @@ window.NG = window.NG || {};
     id: 'scandal', cast: { how: { faces: [['nana', 'smirk'], ['hachi', 'happy']], say: 'They want a photo? They can have the back of my head.' },
       res: { faces: ['nana', 'hachi'], ex: [['angry', 'shock'], ['neutral', 'sad'], ['smirk', 'happy'], ['smirk', 'happy']],
         say: ['Great. Front page. Again.', 'A couple of shots. I have had worse hair days.', 'Barely a smudge. Fine.', 'Ghost mode. Taxi, please.'] } }, title: 'Scandal Run',
-    howto: 'Night, Tokyo, paparazzi everywhere. Sneak Nana through four streets to the taxi at the far end. Stay out of the flash cones; a few seconds in the light and it is a photo. Hide behind vending machines, vans and crowds, duck into alleys, and grab disguises for a few seconds of invisibility. Tomorrow\'s front page is up to you.',
+    howto: 'Night, Tokyo, paparazzi everywhere. Sneak Nana through four streets to the taxi at the far end. Stay out of the flash cones; a few seconds in the light and it is a photo. Hide behind vending machines, vans and crowds, duck into alleys, and grab disguises. Each street has a demo CD lying somewhere you would rather not stand. From street three a reporter on a scooter hunts you; break his line of sight. Tomorrow\'s front page is up to you.',
     controls: 'Arrows / WASD to move &nbsp;&middot;&nbsp; or drag anywhere on touch',
     lines: [['...'], ['...'], ['...'], ['...']]
   }, scandal);
@@ -2188,7 +2435,7 @@ window.NG = window.NG || {};
     id: 'crowdsurf', cast: { how: { faces: [['nana', 'smirk'], ['hachi', 'happy']], say: 'I jump, they catch me. They had better catch me.' },
       res: { faces: ['nana', 'hachi'], ex: [['shock', 'shock'], ['neutral', 'happy'], ['smirk', 'happy'], ['happy', 'happy']],
         say: ['The floor was colder than advertised.', 'Not my best landing. Again.', 'Not bad. Do it again.', 'Best gig I ever played without a stage.'] } }, title: 'Crowd Surf',
-    howto: 'Nana has leapt off the stage. Keep the raised hands under her: catch her in the centre and she goes straight up, catch her on the edge and she drifts. Three clean centre catches in a row launch her into the lights. Land in the moving spotlight for double points, finish fan requests, and fill the BLAST meter for five glorious slow-motion seconds. Dodge beer and security. A strawberry glass gives back a heart.',
+    howto: 'Nana has leapt off the stage. Keep the raised hands under her: catch her in the centre and she goes straight up, catch her on the edge and she drifts. Three clean centre catches in a row launch her into the lights. Land in the moving spotlight for double points, finish fan requests, and fill the BLAST meter for five glorious slow-motion seconds. Dodge beer and security. A strawberry glass gives back a heart, and on your last life Nobu will dive in once.',
     controls: '&larr; &rarr; / A D to move, Space for BLAST &nbsp;&middot;&nbsp; or drag, and tap BLAST',
     lines: [
       ['Nana meets the floor with great artistic commitment. The crowd claps for the effort.', 'A very short flight. A very long apology.'],
@@ -2202,8 +2449,8 @@ window.NG = window.NG || {};
     id: 'padlock', cast: { how: { faces: [['ren', 'neutral'], ['nana', 'neutral']], say: 'It took me years to learn that lock. Do not rush it.' },
       res: { faces: ['ren', 'nana'], ex: [['sad', 'sad'], ['neutral', 'neutral'], ['smirk', 'smirk'], ['happy', 'happy']],
         say: ['Some locks need more than one try.', 'Close. The lock is still thinking.', 'Almost. It wanted you to get there.', '...Thanks.'] } }, title: 'The Padlock',
-    howto: 'A heavy old padlock, four tumblers, one pattern. Listen to the tumblers sing, then play the pattern back. Each cleared round sets a pin and adds one more note. Open the lock and something quiet and heavy finally lets go. Two slips and it stays shut.',
-    controls: 'D F J K &nbsp;&middot;&nbsp; arrow keys &nbsp;&middot;&nbsp; or tap the pads',
+    howto: 'A heavy old padlock, four tumblers, one pattern. Listen to the tumblers sing, then play the pattern back. Each cleared round sets a pin and adds a note. Later tumblers must be played backwards or hide a note you have to remember. Hum it again twice if you need to. Three slips and it stays shut. Open it clean and something quiet and heavy finally lets go.',
+    controls: 'Tap the pads &nbsp;&middot;&nbsp; D F J K or arrows &nbsp;&middot;&nbsp; H or Space to hum',
     lines: [['...'], ['...'], ['...'], ['...']]
   }, padlock);
 
@@ -2212,7 +2459,7 @@ window.NG = window.NG || {};
     cast: { how: { faces: [['demon', 'smirk'], ['hachi', 'shock']], say: 'One strawberry glass. Three hats. What could possibly go wrong? Everything. Everything could.' },
       res: { faces: ['hachi', 'demon'], ex: [['sad', 'smirk'], ['shock', 'smirk'], ['happy', 'angry'], ['happy', 'shock']],
         say: ['I lost the glass. I lost it to a HAT.', 'I got a few! Mostly by panicking correctly.', 'We beat the Demon Lord at hats!', 'He is pretending it did not happen. He is sulking in a hat.'] } },
-    howto: 'The Demon Lord hides Hachi\'s strawberry glass under a black top hat, then shuffles with unreasonable confidence. Follow the glass, then tap the right hat. More hats and faster hands every round, plus his theatrical fake-outs. Three wrong guesses and the show is over.',
+    howto: 'The Demon Lord hides Hachi\'s strawberry glass under a black top hat, then shuffles with unreasonable confidence. Follow the glass, tap the right hat. Each win goes in the pot: bank it, or let it ride for double and lose it all on a miss. More hats every round, theatrical fake-outs, and later he somehow has two glasses. Three wrong guesses and the show is over.',
     controls: 'Tap the hat you think hides the glass',
     lines: [['The Demon Lord wins at hats. He wanted this. He will mention it for weeks.', 'Out of hats, out of luck, out of dignity.'], ['A few right guesses and a lot of loud panicking. Honest work.', 'Not bad. The hats have been told to try harder.'], ['Solid eyes! The Demon Lord claims the glass was "too easy to follow".', 'You followed the glass through a storm of fake-outs. Hachi cries with pride.'], ['The glass was never in doubt. The Demon Lord throws his hat. It is the wrong hat.', 'Perfect eyes. Somewhere a magician gives up and becomes an accountant.']]
   }, cups);
@@ -2222,7 +2469,7 @@ window.NG = window.NG || {};
     cast: { how: { faces: [['nana', 'smirk'], ['hachi', 'happy']], say: 'It is sale day. Everyone wants to look like something. You are the shop assistant now. Good luck.' },
       res: { faces: ['nana', 'hachi'], ex: [['angry', 'sad'], ['neutral', 'neutral'], ['smirk', 'happy'], ['happy', 'happy']],
         say: ['I would not wear any of that to my own funeral.', 'Fine. Nobody will be arrested.', 'I would be seen with that. Do not make it weird.', 'Okay. You can work here. Do not tell Hachi I said that.'] } },
-    howto: 'Punk boutique, sale day. Three clients each give you a style brief. Tap pieces from every category (top, bottom, shoes, extra) to dress the paper doll before the timer runs out, then hit Done. The closer the vibe, the better the score, and Nana will deliver the verdict. Deadpan.',
+    howto: 'Punk boutique, sale day. Four clients, each with a style brief, a budget, and one thing they refuse to wear. Match their tags across all four slots, spend less for a bonus, then hit Done. Plenty of time. The third client will change their mind halfway through, because of course they will. Nana delivers the verdict. Deadpan.',
     controls: 'Tap a category, tap a piece, tap Done',
     lines: [['The clients leave in silence. One of them is carrying their old clothes. In a bag. Quickly.', 'The shop has a policy of no refunds. It has never been more needed.'], ['Mostly wearable. Mostly. The belt is a strong opinion.', 'A passable day. Nobody cried. Not in the shop, anyway.'], ['Good eye. The clients paid and did not look back.', 'A strong day. Someone asked if you were hiring. You were not.'], ['A legend of the tartan rack. Nana pretends not to take notes.', 'Dressed everyone perfectly. The mirrors are nervous.']]
   }, fitcheck);
@@ -2232,7 +2479,7 @@ window.NG = window.NG || {};
     cast: { how: { faces: [['yasu', 'neutral'], ['takumi', 'smirk']], say: 'I read the contract. All of it. I regret the contract. Stamp the bad parts.' },
       res: { faces: ['yasu', 'takumi'], ex: [['sad', 'smirk'], ['neutral', 'smirk'], ['smirk', 'angry'], ['smirk', 'shock']],
         say: ['We signed. We now belong to a sandwich.', 'Passable. We keep our names, mostly.', 'Good. Most of the evil is gone.', 'Zero evil clauses survived. I am almost smiling. Do not look.'] } },
-    howto: 'Yasu, former lawyer, is reviewing a major-label contract. Clauses drift down toward the signature line. Tap the evil ones to stamp OBJECTION before they get there. Leave the fair ones alone. Let three evil clauses reach the line and the band is doomed. Takumi will be unbearable about it.',
+    howto: 'Yasu, former lawyer, is reviewing a major-label contract. Clauses drift toward the signature line. Stamp the evil ones, leave the fair ones. Stamp right at the last second for double points. A streak of five earns a RECESS that freezes the page. Halfway through, Takumi adds fine print that sounds lovely and is not. Three evil clauses signed and the band is doomed.',
     controls: 'Tap evil clauses. Ignore the fair ones.',
     lines: [['The contract is signed. Takumi gets a very large pen. Everyone else gets a very small van.', 'Doomed. But with excellent paperwork.'], ['Some evil got through. The band retains the right to complain about it.', 'Half the contract is gone. The other half is mostly a banana costume.'], ['Strong objecting. The label\'s lawyer cries into a briefcase.', 'Nearly clean. Yasu nods once. That is a standing ovation.'], ['Not one evil clause survived. The label offers a new contract, with a clause saying "we are sorry".', 'Spotless. Yasu removes his glasses to polish them, which is the same as dancing.']]
   }, objection);
@@ -2242,7 +2489,7 @@ window.NG = window.NG || {};
     cast: { how: { faces: [['nobu', 'shock'], ['nana', 'smirk']], say: 'My parents need help for one shift! Please do not break anything! Please be NORMAL!' },
       res: { faces: ['nobu', 'shin'], ex: [['sad', 'neutral'], ['shock', 'neutral'], ['happy', 'smirk'], ['happy', 'smirk']],
         say: ['My mother is going to find out about the oden.', 'We survived! Mostly! Nobody is on fire!', 'The guests are leaving smiling. Why does that feel suspicious?', 'My parents hired the whole band. I am so happy I could cry. Quietly.'] } },
-    howto: 'The band is working a shift at Nobu\'s parents\' traditional inn. Guests want tea, towels, oden or a futon, and their patience is draining. Tap an item in the tray, then tap the guest. Right item, happy guest. Wrong item, flustered Nobu. Three walk-outs ruin the inn\'s reputation.',
+    howto: 'The band is working a shift at Nobu\'s parents\' traditional inn. Guests want tea, towels, oden or a futon, and their patience is draining. Tap an item, then tap the guest. Streaks earn bigger tips. Serve enough and Nobu can apologise to the entire inn at once, buying everyone patience but ending your streak. Halfway through a tour bus arrives and guests want two things. Three walk-outs ruin the inn\'s reputation.',
     controls: 'Tap a tray item, then tap the guest who wants it',
     lines: [['The inn survives, technically. Nobu\'s mother says the word "interesting" in a very sharp way.', 'Too many walk-outs. The futons look disappointed.'], ['A decent shift. Only some of the tea was on the floor.', 'The guests got what they wanted, mostly. Nobu is sweating through his apron.'], ['A smooth shift! Shin is suspiciously good at this. Nobody knows why.', 'Yasu carried four futons, Nana scared a man into tipping, and the inn lives.'], ['The best shift the inn has ever seen. Nobu\'s father shakes everyone\'s hand twice.', 'Flawless service. Even the cat left a review. It was five stars and mostly hair.']]
   }, inn);
@@ -2252,8 +2499,8 @@ window.NG = window.NG || {};
     cast: { how: { faces: [['nana', 'smirk'], ['naoki', 'happy']], say: 'Backstage catering. A certain drummer is hungry. A certain drummer is in a plant.' },
       res: { faces: ['nana', 'naoki'], ex: [['angry', 'happy'], ['neutral', 'happy'], ['smirk', 'shock'], ['smirk', 'sad']],
         say: ['There are no sandwiches left. He is full and happy.', 'He ate a lot. We ate a little. Fair.', 'Good defence. He is limping and still smiling.', 'Not one sandwich lost. He is sulking in the corner. In a box.'] } },
-    howto: 'Backstage catering! Naoki, Trapnest\'s cheerful drummer, keeps popping up to steal sandwiches, sometimes in silly disguises. Tap him before he grabs one. Do NOT tap Reira or Shin when they pop up. Your sandwich count is your health.',
-    controls: 'Tap Naoki. Never tap Reira or Shin.',
+    howto: 'Backstage catering! Naoki, Trapnest\'s cheerful drummer, keeps popping up to steal sandwiches, sometimes in silly disguises. Tap him before he grabs one. Do NOT tap Reira or Shin. Spend a sandwich as BAIT for seven seconds of double points and slower grabs. Halfway through it becomes a costume party, so check the faces. Your sandwiches are your health.',
+    controls: 'Tap Naoki. Never tap Reira or Shin. BAIT button or Space.',
     lines: [['The table is bare. Naoki holds a single crust and a look of pure triumph.', 'Heist successful. For him. The sandwiches are in a happy place.'], ['A few sandwiches survive. Naoki waves from behind a lampshade.', 'A mixed result. The catering staff will not be told.'], ['A strong defence. Naoki leaves with only a pickle and his pride.', 'Most sandwiches saved. The drummer is somewhere with a traffic cone, plotting.'], ['A perfect table. Naoki bows to you from inside a cardboard box and leaves.', 'Not one sandwich stolen. Nana pays you in respect. Respect is rare.']]
   }, sandwich);
 })();

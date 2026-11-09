@@ -7,7 +7,7 @@ window.NG = window.NG || {};
   var STAT_ICONS = { bond: 'glass', fame: 'star', scandal: 'pin', harmony: 'mic' };
   var NAMES = {
     hachi: 'Hachi', nana: 'Nana', ren: 'Ren', nobu: 'Nobu', shin: 'Shin', yasu: 'Yasu',
-    reira: 'Reira', takumi: 'Takumi', naoki: 'Naoki', junko: 'Junko', kyosuke: 'Kyosuke', shoji: 'Shoji', misato: 'Misato', demon: 'The Demon Lord'
+    reira: 'Reira', takumi: 'Takumi', naoki: 'Naoki', junko: 'Junko', kyosuke: 'Kyosuke', shoji: 'Shoji', misato: 'Misato', demon: 'The Demon Lord', paula: 'Paula', samu: 'Samu', yuki: 'Yuki'
   };
   var DIFFS = [
     { id: 'hachi', name: 'Hachi', desc: 'Easy. You cannot fail. She believes in you.' },
@@ -35,7 +35,10 @@ window.NG = window.NG || {};
     ['kyosuke', 'Kyosuke', 'Junko\'s boyfriend', 'Has a spare futon, and has never once said "I told you so".'],
     ['shoji', 'Shoji', 'Hachi\'s ex', 'An art student. The reason she got on the train.'],
     ['misato', 'Misato', 'BLAST superfan', 'Knows your setlist better than you do.'],
-    ['demon', 'The Demon Lord', 'Fate, allegedly', 'Hachi\'s official explanation for everything.']
+    ['demon', 'The Demon Lord', 'Fate, allegedly', 'Hachi\'s official explanation for everything.'],
+    ['paula', 'Paula', 'Nail tech, biggest fan', 'Kind, emotional and frighteningly good at customer service. Has read your whole life.'],
+    ['samu', 'Samu', 'Paula\'s boyfriend', 'Crossed a dimension with her phone charger. Has read two chapters.'],
+    ['yuki', 'Yuki', 'Cat, management', 'Her name means snow. She is black. She thinks that is funny too.']
   ];
   var SONG_FACE = { 'last-train': ['nana', 'neutral'], 'strawberry-glass': ['hachi', 'happy'], 'padlock': ['ren', 'neutral'], 'room-707': ['nobu', 'happy'], 'birdcage': ['reira', 'smirk'], 'demon-encore': ['demon', 'smirk'] };
   var REACTIONS = {
@@ -57,7 +60,7 @@ window.NG = window.NG || {};
     newsstand: 'tension', arena: 'tension', 'rain-rift': 'sad', 'demon-realm': 'tension', studio: 'room', penthouse: 'sad',
     rooftop: 'sad', hometown: 'sad', platform: 'sad', backstage: 'tension', inn: 'room', 'road-van': 'room'
   };
-  var GAME_MOOD = { shortcake: 'room', redflag: 'room', scandal: 'tension', crowdsurf: 'tension', padlock: 'sad', cups: 'tension', fitcheck: 'room', objection: 'tension', inn: 'room', sandwich: 'room' };
+  var GAME_MOOD = { shortcake: 'room', redflag: 'room', scandal: 'tension', crowdsurf: 'tension', padlock: 'sad', cups: 'tension', fitcheck: 'room', objection: 'tension', inn: 'room', sandwich: 'room', nails: 'room' };
   var musicLock = false;
   // Recorded lines, played as wordless "memory" beats so they never clash with the written dialogue.
   var MEMORY_WHO = { 'regret': 'nana', 'are-you-happy': 'nana', 'afraid-distance': 'nana', 'cheap-glass': 'nana', 'jealous-reira': 'nana', 'crush-them': 'nana', 'love-not-waste': 'nana', 'face-to-face': 'nana', 'cant-move': 'nana', 'no-matter': 'nana', 'nobu-stepped': 'nana', 'takumi-advice': 'nana', 'fish': 'nana', 'stars-ren': 'nana' };
@@ -1314,6 +1317,7 @@ window.NG = window.NG || {};
     flash.appendChild(box);
     form.appendChild(flash);
 
+    if (NG.Audio && NG.Audio.setCustomTrack && window.indexedDB) form.appendChild(soundtrackPanel());
     form.appendChild(saveCodePanel());
 
     var acts = el('div', 'results-actions');
@@ -1416,6 +1420,46 @@ window.NG = window.NG || {};
       return navigator.clipboard.writeText(box.value).then(function () { return true; }, function () { return document.execCommand('copy'); });
     }
     return Promise.resolve(document.execCommand('copy'));
+  }
+
+  function soundtrackPanel() {
+    var wrap = el('div', 'soundtrack');
+    wrap.innerHTML = '<h3 class="prep-sub">Your soundtrack</h3><p class="disclaimer">Choose your own audio files to play in the game. They stay in this browser on this device and are never uploaded. Please only use music you have the right to use.</p>';
+    [['title', 'Title screen'], ['happy', 'Happy moments'], ['intense', 'Intense moments'], ['sad', 'Sad moments']].forEach(function (slot) {
+      var row = el('div', 'track-row');
+      var input = el('input');
+      input.type = 'file';
+      input.accept = 'audio/*,.mp3,.m4a,.aac,.wav,.ogg';
+      input.hidden = true;
+      function draw() {
+        var name = NG.Audio.customTracks()[slot[0]];
+        row.innerHTML = '';
+        var info = el('div', 'track-info', '<b>' + slot[1] + '</b><span></span>');
+        info.querySelector('span').textContent = name || 'Original track';
+        row.appendChild(info);
+        row.appendChild(input);
+        row.appendChild(btn(name ? 'Change' : 'Choose file', '', function () { input.click(); }));
+        if (name) row.appendChild(btn('Reset', 'ghost', function () {
+          NG.Audio.clearCustomTrack(slot[0]).then(function () { toast('Back to the original track.', 'good'); draw(); }, trackFailed);
+        }));
+      }
+      input.addEventListener('change', function () {
+        var file = input.files[0];
+        input.value = '';
+        if (!file) return;
+        NG.Audio.setCustomTrack(slot[0], file).then(function () {
+          toast('Your track is in.', 'good');
+          audio('menu', slot[0]);
+          draw();
+        }, trackFailed);
+      });
+      draw();
+      wrap.appendChild(row);
+    });
+    return wrap;
+  }
+  function trackFailed(e) {
+    toast(e && e.message === 'large' ? 'That file is too big. The limit is 40 MB.' : 'That file would not play. Try an MP3.', 'bad');
   }
 
   function saveCodePanel() {

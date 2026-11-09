@@ -356,3 +356,63 @@
 @keyframes mg-cs-pulse { 50% { transform: scale(1.09); } }
 @media (min-width: 700px) { .mg-cs-req { font-size: 18px; padding: 8px 12px; max-width: 50%; } .mg-cs-req small { font-size: 12px; } .mg-cs-blast { width: 104px; height: 104px; font-size: 24px; } }
 @media (prefers-reduced-motion: reduce) { .mg-cs-blast.ready { animation: none; } }
+
+/* ---------- depth pass: new controls ---------- */
+.mg-sc-serve { position: absolute; top: 8px; left: 8px; z-index: 3; min-width: 92px; min-height: 48px; padding: 6px 12px; font: 18px/1 var(--mg-punk); letter-spacing: .05em; text-transform: uppercase; color: var(--mg-ink); background: var(--mg-gold); border: 3px solid var(--mg-ink); box-shadow: 3px 3px 0 var(--mg-ink); transform: rotate(-2deg); cursor: pointer; touch-action: none; }
+.mg-rf-ask { flex: 0 0 74px; min-height: 56px; padding: 4px 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-family: var(--mg-punk); color: var(--mg-paper); background: var(--mg-ink); border: 3px solid var(--mg-ink); box-shadow: 4px 4px 0 var(--mg-red); cursor: pointer; touch-action: manipulation; }
+.mg-rf-ask b { font: normal 14px/1 var(--mg-punk); letter-spacing: .04em; } .mg-rf-ask small { font: 13px var(--mg-punk); color: var(--mg-gold); }
+.mg-rf-ask:disabled { opacity: .4; cursor: default; }
+.mg-pl-tools { flex: none; display: flex; align-items: center; justify-content: center; gap: 14px; width: 100%; }
+.mg-pl-hum { min-height: 44px; padding: 6px 12px; font: 13px/1 var(--mg-punk); letter-spacing: .08em; color: var(--mg-paper); background: #2b2433; border: 2px solid var(--mg-pink); cursor: pointer; touch-action: manipulation; }
+.mg-pl-hum:disabled { opacity: .4; cursor: default; }
+.mg-pl-status b { color: var(--mg-gold); font-weight: normal; }
+.mg-cups-offer { flex: none; display: flex; justify-content: center; gap: 12px; padding: 4px 10px; }
+.mg-cups-offer[hidden] { display: none; }
+.mg-cups-offer .mg-btn { min-width: 0; flex: 1 1 0; max-width: 200px; font-size: 18px; padding: 8px 6px; }
+.mg-cups-offer .mg-ride { background: var(--mg-ink); color: var(--mg-gold); border-color: var(--mg-gold); }
+.mg-hat.up { pointer-events: none; }
+.mg-fit-brief { flex: none; font: 12px/1.2 var(--mg-letter); color: var(--mg-paper); text-align: center; }
+.mg-fit-brief b { color: var(--mg-gold); font-family: var(--mg-punk); font-weight: normal; letter-spacing: .03em; } .mg-fit-brief b.no { color: #ff8a9b; } .mg-fit-brief .over { color: #ff8a9b; }
+.mg-item.banned { background: #cfc7ba; } .mg-item.banned b { text-decoration: line-through; }
+.mg-item small { font-size: 11px; }
+.mg-obj-recess { position: absolute; right: 10px; bottom: 7px; z-index: 3; min-width: 104px; min-height: 46px; padding: 4px 10px; font: 16px/1 var(--mg-punk); letter-spacing: .05em; color: var(--mg-paper); background: var(--mg-ink2); border: 3px solid var(--mg-ink); box-shadow: 3px 3px 0 var(--mg-gold); cursor: pointer; touch-action: none; }
+.mg-obj-recess:disabled { opacity: .4; cursor: default; }
+.mg-obj-line em { right: 124px; }
+.mg-obj-banner { position: absolute; top: 4px; left: 50%; z-index: 3; display: none; max-width: 92%; padding: 4px 10px; font: 14px/1.1 var(--mg-punk); letter-spacing: .05em; color: var(--mg-paper); background: var(--mg-red); transform: translateX(-50%); white-space: nowrap; pointer-events: none; }
+.mg-obj-banner.show { display: block; }
+.mg-inn-tray { grid-template-columns: repeat(4, 1fr) minmax(58px, 1fr); }
+.mg-inn-bow { position: relative; overflow: hidden; min-height: 66px; padding: 0; color: var(--mg-paper); background: var(--mg-ink2); border: 3px solid var(--mg-ink); box-shadow: 3px 3px 0 #000; cursor: pointer; touch-action: none; }
+.mg-inn-bow i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: var(--mg-straw); }
+.mg-inn-bow b { position: relative; font: 13px/1 var(--mg-punk); letter-spacing: .03em; }
+.mg-inn-bow.ready { border-color: var(--mg-gold); box-shadow: 0 0 0 3px var(--mg-gold); }
+.mg-inn-bow:disabled { cursor: default; }
+.mg-want em { position: absolute; right: -4px; bottom: -6px; padding: 0 3px; font: normal 12px/1.3 var(--mg-punk); color: var(--mg-paper); background: var(--mg-red); }
+.mg-want { overflow: visible; }
+.mg-sw-bar { flex: none; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 2px 8px; }
+.mg-sw-bar .mg-sw-left { flex: 1 1 auto; padding: 0; }
+.mg-sw-bait { flex: none; min-width: 86px; min-height: 44px; padding: 4px 8px; font: 15px/1 var(--mg-punk); letter-spacing: .04em; color: var(--mg-ink); background: var(--mg-gold); border: 3px solid var(--mg-ink); box-shadow: 3px 3px 0 #000; cursor: pointer; touch-action: none; }
+.mg-sw-bait:disabled { opacity: .55; cursor: default; }
+.mg-sand { width: 22px; height: 15px; }
+@media (min-width: 700px) {
+  .mg-sc-serve { font-size: 24px; min-height: 60px; padding: 8px 18px; }
+  .mg-rf-ask { flex-basis: 110px; min-height: 76px; } .mg-rf-ask b { font-size: 20px; }
+  .mg-pl-hum { font-size: 18px; min-height: 54px; padding: 8px 18px; }
+  .mg-cups-offer .mg-btn { font-size: 24px; }
+  .mg-fit-brief { font-size: 17px; }
+  .mg-item small { font-size: 15px; }
+  .mg-obj-recess { font-size: 20px; min-width: 130px; } .mg-obj-line em { right: 150px; } .mg-obj-banner { font-size: 20px; }
+  .mg-inn-bow { min-height: 100px; } .mg-inn-bow b { font-size: 18px; } .mg-want em { font-size: 16px; }
+  .mg-sw-bait { font-size: 20px; min-width: 120px; min-height: 54px; } .mg-sand { width: 34px; height: 22px; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .mg-sc-serve { min-height: 44px; font-size: 15px; }
+  .mg-top { min-height: calc(46px + env(safe-area-inset-top, 0)); } .mg-overlay { top: calc(46px + env(safe-area-inset-top, 0)); } .mg-quit { height: 44px; }
+  .mg-rf-ask { min-height: 46px; flex-basis: 64px; } .mg-rf-ask b { font-size: 12px; }
+  .mg-pl { position: absolute; } .mg-pl-tools { position: absolute; top: 2px; right: 6px; width: auto; } .mg-pl-tools .mg-pl-slips { display: none; } .mg-pl-status { padding-right: 130px; } .mg-pl-hum { font-size: 11px; padding: 4px 8px; }
+  .mg-cups-offer { padding: 2px 8px; } .mg-cups-offer .mg-btn { min-height: 44px; font-size: 15px; padding: 4px; } .mg-cups-field { min-height: 110px; } .mg-cups-msg { min-height: 24px; padding: 2px 8px; font-size: 14px; }
+  .mg-fit-brief { font-size: 11px; }
+  .mg-obj-recess { min-height: 44px; font-size: 14px; bottom: 6px; } .mg-obj-banner { font-size: 12px; }
+  .mg-inn-bow { min-height: 50px; } .mg-inn-tray { grid-template-columns: repeat(4, 1fr) 72px; }
+  .mg-sw-bar { position: absolute; top: 0; right: 6px; padding: 0; } .mg-sw-bar .mg-sw-left { display: none; } .mg-sw .mg-strip { padding-right: 104px; }
+}
+@media (max-width: 380px) { .mg-rf-ask { flex-basis: 64px; } .mg-rf-ask b { font-size: 12px; } .mg-fit-brief { font-size: 11px; } }

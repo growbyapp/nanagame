@@ -21,9 +21,9 @@ Unofficial, non-commercial fan tribute. A what-if, never presented as canon.
 
 ### Not verified: treat with care
 
-- **Strawberry pattern on the glasses:** sources confirm matching glasses only. Kept because the brief and song title require it.
-- **Who holds the padlock key:** sources conflict. The story jokes about the argument and asserts nothing.
-- **Exact wording of how Hachi got her nickname, and who works where at Jackson Hole.** The nickname scene is original; Jackson Hole is only a hangout here.
+- **Exact wording of how Hachi got her nickname.** The nickname scene is original.
+- **Takumi calling Hachi "Nana".** Fan memory, not sourced. The game uses it as his signature either way.
+- **Hachi and Nana's first meeting falling on Nana's birthday (March 5).** Fan databases, used as a late discovery in the true ending.
 - **Misato's and Junko's looks** are this game's own invention, as are all portraits.
 - Character wikis (Fandom, TV Tropes) were unreachable, so finer details were left out, e.g. Yasu's job, Nobu's family, Shin's side life, hometowns.
 
@@ -37,6 +37,19 @@ Unofficial, non-commercial fan tribute. A what-if, never presented as canon.
 6. https://www.funtime.com.tw/blog/?p=82725
 7. https://www.lemon8-app.com/@kebabom/7202120624976970242?region=sg
 
+### Canon the story now relies on
+
+- Hachi leaves 707 (for the flat Takumi rents). Nana stays; in `rift` her bag is a tour bag.
+- Nana keeps the only key; Ren wears the lock.
+- Yasu passed the bar and never finished the training. He was never a practising lawyer.
+- Jackson Hole belongs to Hachi and Shoji's story. Junko's refuge is her own flat and the spare futon.
+- Hachi's Trapnest crush is Takumi, not Ren.
+- Miu is an actress with the same agency, in Blast's dormitory.
+- The cracked or chipped strawberry glass is Nana's.
+- Shin's schooling is Yasu's doing, a choice this game makes because he is a child.
+- Names run family name first: Komatsu Nana, Osaki Nana, Honjo Ren, Ichinose Takumi.
+- The anime stops around manga volume 12. Nana leaving for England and Ren naming Satsuki are manga only and appear only in `manga: true` content.
+
 ## Tone
 
 Comedy and heartbreak in the same breath. Hachi is the comedy engine: melodrama, charts, pudding, blaming the Demon Lord. Nana's lines are short and ache by leaving things out. Every joke sets up later pain: the dog named Hachi becomes the vow to wait at the station; "don't blink" returns at the final boss; the stamps come back; the cracked glass still holds water.
@@ -47,18 +60,18 @@ Hachi writes letters to Nana and addresses the player as the person in the next 
 
 ## Spoiler policy
 
-Late-series tragedies are only hinted at ("there were not so many of us at the table"). Hachi's life-changing news in the rift is never named.
+Late-series tragedies are only hinted at ("there were not so many of us at the table"). Hachi's pregnancy is anime material and is named plainly in the rift. What If cards for `manga: true` episodes (title, tagline, premise) show before the warning, so they must not reveal manga-only events.
 
 ## Stats and endings
 
 | Ending | Needs |
 | --- | --- |
-| The Lights in 707 | bond 18+, harmony 8+, scandal 12 or less, flag `left-the-light-on`, boss beaten |
+| The Lights in 707 | bond 22+, harmony 8+, scandal 12 or less, flag `left-the-light-on`, boss beaten |
 | The Arena, and One Empty Chair | flag `chose-stage`, boss beaten |
 | Still at the Station | boss beaten |
 | Demon Lord: The Musical | boss not beaten |
 
-Key flags: `told-first`, `hachiko-vow`, `band-dinner`, `reira-respect`, `left-the-light-on`, `chose-stage`. The final rift choice is exclusive, so the true route forgoes the band dinner and the bonus line it unlocks.
+Key flags: `told-first`, `hachiko-vow`, `said-it`, `packed-shirt`, `band-dinner`, `reira-respect`, `left-the-light-on`, `chose-stage`, and the fork `with-nobu` / `with-takumi` / `chose-nana`. The final rift choice is exclusive, so the true route forgoes the band dinner and the bonus line it unlocks.
 
 ## Art direction
 
