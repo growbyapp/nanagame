@@ -29,7 +29,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the modules fit togethe
 
 ## Audio
 
-Gig music and sound effects are synthesized in the browser. Menu music and voice clips load from a local `assets` folder that is deliberately not part of this repository, so the hosted version plays without them.
+Gig music and sound effects are synthesized in the browser. The menu, story and minigame soundtrack in `audio/` is original instrumental music generated for this project with ElevenLabs Music through Higgsfield.
 
 ## Legal
 

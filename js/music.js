@@ -9,12 +9,24 @@ window.NG = window.NG || {};
   var A = NG.Audio;
   if (!A) return;
 
+  // `audio/` holds the original soundtrack that ships with the public site.
+  // `assets/` is an optional local-only folder; when present it takes over.
   var TRACKS = {
-    title: { src: 'assets/music/opening.mp3', trim: 0.43 },
-    happy: { src: 'assets/music/happy.mp3', trim: 0.51 },
-    intense: { src: 'assets/music/intense.mp3', trim: 0.6 },
-    sad: { src: 'assets/music/sad.mp3', trim: 0.77 }
+    title: { src: 'audio/title.mp3', trim: 1, local: 'assets/music/opening.mp3', localTrim: 0.43 },
+    happy: { src: 'audio/happy.mp3', trim: 1, local: 'assets/music/happy.mp3', localTrim: 0.51 },
+    intense: { src: 'audio/intense.mp3', trim: 1, local: 'assets/music/intense.mp3', localTrim: 0.6 },
+    sad: { src: 'audio/sad.mp3', trim: 1, local: 'assets/music/sad.mp3', localTrim: 0.77 }
   };
+  var useLocal = false, hasVoice = false;
+  function probe(src, cb) {
+    var a = new window.Audio();
+    a.preload = 'metadata';
+    a.addEventListener('loadedmetadata', function () { cb(true); });
+    a.addEventListener('error', function () { cb(false); });
+    a.src = src;
+  }
+  probe('assets/music/happy.mp3', function (ok) { useLocal = ok; });
+  probe('assets/voice/laugh.mp3', function (ok) { hasVoice = ok; });
   var ALIAS = { room: 'happy', tension: 'intense' };
   var FADE_OUT = 0.35, FADE_IN = 0.7, DUCK = 0.3, TICK = 30;
   var SILENCE = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=';
@@ -59,7 +71,7 @@ window.NG = window.NG || {};
   function trackId(id) { return ALIAS[id] || id; }
 
   function apply() {
-    var trim = current ? TRACKS[current].trim : 1;
+    var trim = current ? (useLocal ? TRACKS[current].localTrim : TRACKS[current].trim) : 1;
     setGain(music, level * trim * vol.music * duck);
   }
 
@@ -70,7 +82,7 @@ window.NG = window.NG || {};
     current = next || null;
     music.el.pause();
     if (!next) { level = 0; return; }
-    music.el.src = TRACKS[next].src;
+    music.el.src = useLocal ? TRACKS[next].local : TRACKS[next].src;
     var at = positions[next] || 0;
     if (at) {
       var seek = function () {
@@ -142,7 +154,7 @@ window.NG = window.NG || {};
   voice.el.addEventListener('error', voiceEnded);
 
   A.voice = function (id, onEnd) {
-    if (!unlocked || vol.voice <= 0 || !id) { if (onEnd) onEnd(); return; }
+    if (!unlocked || !hasVoice || vol.voice <= 0 || !id) { if (onEnd) onEnd(); return; }
     voiceDone = onEnd || null;
     voice.el.pause();
     voice.el.src = 'assets/voice/' + id + '.mp3';
@@ -152,6 +164,7 @@ window.NG = window.NG || {};
     voiceSafety = setTimeout(releaseDuck, 30000);
     play(voice);
   };
+  A.hasVoice = function () { return hasVoice; };
   A.stopVoice = function () {
     voiceDone = null;
     voice.el.pause();

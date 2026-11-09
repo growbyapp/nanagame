@@ -603,7 +603,8 @@ window.NG = window.NG || {};
   /* ---------- What If...? ---------- */
 
   function runMemory(id, next) {
-    if (skipping) { next(); return; }
+    // Without voice clips there is nothing to play, so the beat is skipped outright.
+    if (skipping || !(NG.Audio && NG.Audio.hasVoice && NG.Audio.hasVoice())) { next(); return; }
     stopTyping();
     var who = MEMORY_WHO[id] || 'hachi';
     var box = el('div', 'memory');
@@ -1280,7 +1281,7 @@ window.NG = window.NG || {};
     var pct = function (v) { return Math.round(v * 100) + '%'; };
     slider('Music', 'music', 0, 1, 0.05, pct);
     slider('Sound effects', 'sfx', 0, 1, 0.05, pct);
-    slider('Voices', 'voice', 0, 1, 0.05, pct);
+    if (NG.Audio && NG.Audio.hasVoice && NG.Audio.hasVoice()) slider('Voices', 'voice', 0, 1, 0.05, pct);
     slider('Note speed', 'speed', 0.6, 1.8, 0.1, function (v) { return v.toFixed(1) + 'x'; });
     slider('Timing offset (raise if your hits feel late)', 'offsetMs', -200, 200, 5, function (v) { return v + ' ms'; });
 
