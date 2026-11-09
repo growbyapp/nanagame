@@ -1,0 +1,6 @@
+# Audio from the show. Kept local only: not licensed for public distribution.
+assets/
+
+# Local tooling
+.claude/
+.DS_Store
