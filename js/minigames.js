@@ -582,8 +582,8 @@ window.NG = window.NG || {};
 
     var reds = shuffle(SUITORS.filter(function (c) { return !c.ok; })), oks = shuffle(SUITORS.filter(function (c) { return c.ok; }));
     var demons = shuffle(DEMON), ri = 0, oi = 0, di = 0, nCard = 0;
-    var score = 0, correct = 0, streak = 0, best = 0, hearts = 3, timeLeft = 45, elapsed = 0;
-    var card = null, cardEl = null, cardT = 0, cardMax = 3, flipped = false, flipLeft = 0, nextDemon = rr(9, 12), demonDue = false, locked = false, ended = false;
+    var score = 0, correct = 0, streak = 0, best = 0, hearts = 3, timeLeft = 75, elapsed = 0;
+    var card = null, cardEl = null, cardT = 0, cardMax = 3, flipped = false, flipLeft = 0, nextDemon = rr(14, 18), demonDue = false, locked = false, ended = false;
     var toastT = 0, drag = null, decentSeen = 0, decentGot = 0;
 
     function drawHearts() { var s = ''; for (var i = 0; i < 3; i++) s += '<span class="' + (i < hearts ? 'on' : 'off') + '">&#9829;</span>'; heartsEl.innerHTML = s; }
@@ -602,12 +602,12 @@ window.NG = window.NG || {};
       else { if (ri >= reds.length) { reds = shuffle(reds); ri = 0; } c = reds[ri++]; }
       if (oi >= oks.length && Math.random() < 0.5) { oks = shuffle(oks); oi = 0; }
       card = c; nCard++; if (c.ok) decentSeen++;
-      cardMax = c.demon ? 3.2 : Math.max(1.05, 3.4 - Math.min(2.3, streak * 0.12) - Math.min(0.5, elapsed * 0.01));
+      cardMax = c.demon ? 7 : Math.max(4, 7.5 - Math.min(3, streak * 0.15) - Math.min(0.5, elapsed * 0.008));
       cardT = cardMax; deck.innerHTML = '';
       cardEl = el('div', 'mg-rf-card' + (c.demon ? ' demon' : '') + ' enter');
       var det = ''; for (var i = 0; i < c.d.length; i++) det += '<li>' + c.d[i] + '</li>';
       cardEl.innerHTML = '<i class="mg-rf-tape"></i><div class="mg-rf-photo">' + suitorSVG(nCard + (c.n.length), c) + '</div><div class="mg-rf-info"><h3>' + c.n + '</h3><p class="mg-rf-tag">&ldquo;' + c.t + '&rdquo;</p><ul>' + det + '</ul>' +
-        (c.demon ? '<p class="mg-rf-warn">WARNING: after this, LEFT and RIGHT swap for 5 seconds.</p>' : '') + '</div>' +
+        (c.demon ? '<p class="mg-rf-warn">WARNING: after this, LEFT and RIGHT swap for 8 seconds.</p>' : '') + '</div>' +
         '<span class="mg-rf-stamp s-l"></span><span class="mg-rf-stamp s-r"></span>';
       deck.appendChild(cardEl); stampText(); locked = false;
       cast.set(0, c.demon ? 'shock' : lastBad ? 'sad' : 'happy'); cast.set(1, c.demon || lastBad ? 'angry' : 'smirk');
@@ -630,9 +630,9 @@ window.NG = window.NG || {};
       locked = true;
       var c = card, el0 = cardEl, good, i;
       if (c.demon) {
-        showToast('Controls swap for 5s. Left = ' + 'LOVE, Right = RUN.', false);
-        flipped = true; flipLeft = 5; labels(); banner.textContent = 'DEMON LORD: LEFT = LOVE, RIGHT = RUN'; banner.className = 'mg-rf-banner show warn'; sfx('lose');
-        nextDemon = elapsed + rr(10, 14);
+        showToast('Controls swap for 8s. Left = ' + 'LOVE, Right = RUN.', false);
+        flipped = true; flipLeft = 8; labels(); banner.textContent = 'DEMON LORD: LEFT = LOVE, RIGHT = RUN'; banner.className = 'mg-rf-banner show warn'; sfx('lose');
+        nextDemon = elapsed + rr(16, 22);
       } else {
         good = ch !== null && ((ch === 'run' && !c.ok) || (ch === 'love' && c.ok)); lastBad = !good;
         if (good) {
@@ -661,7 +661,7 @@ window.NG = window.NG || {};
     function endGame(why) {
       if (ended) return; ended = true; locked = true;
       ctx.later(function () {
-        var stars = correct >= 17 ? 3 : correct >= 12 ? 2 : correct >= 7 ? 1 : 0;
+        var stars = correct >= 15 ? 3 : correct >= 10 ? 2 : correct >= 6 ? 1 : 0;
         var out = (why === 'heartbroken') ? 'Three heartbreaks. Hachi retires to a sofa with ice cream.' : 'Time! Hachi has been in love ' + nCard + ' times today. A personal record.';
         ctx.finish({ title: 'Radar report', score: score, stars: stars, effects: { harmony: stars, bond: stars },
           html: '<div class="mg-stats"><span>Correct <b>' + correct + '</b></span><span>Best streak <b>' + best + '</b></span><span>Decent guys <b>' + decentGot + '/' + decentSeen + '</b></span></div><p class="mg-p">' + out + '</p>' });
